@@ -1,0 +1,58 @@
+# Data files
+data-gen/output/*.json
+data-gen/output/*.txt
+data-gen/output/*.csv
+data/
+logs/
+backups/
+
+# Environment
+.env
+*.env.local
+docker/.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+ENV/
+env/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Benchmark results
+benchmark-results/*.csv
+benchmark-results/*.json
+benchmark-results/*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.log
+
+# Secrets
+*.key
+*.pem
+*.crt
+secrets/
+credentials/

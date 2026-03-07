@@ -1,0 +1,16 @@
+-- filepath: sql/schema/02-flows-distributed.sql
+-- Purpose: Create distributed table for querying across all shards
+-- Dependencies: flows_local must exist on all nodes
+-- Usage: Execute on any node (distributes queries automatically)
+
+-- TODO: Implement distributed table
+-- Engine: Distributed('{cluster}', database, local_table, sharding_key)
+--
+-- Example:
+-- CREATE TABLE IF NOT EXISTS flows_distributed ON CLUSTER '{cluster}' AS flows_local
+-- ENGINE = Distributed('{cluster}', default, flows_local, rand());
+--
+-- Sharding key options:
+--   - rand(): Random distribution
+--   - cityHash64(src_ip): Consistent hashing by source IP
+--   - intHash32(toYYYYMMDD(timestamp)): Time-based sharding

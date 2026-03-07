@@ -1,0 +1,16 @@
+-- filepath: sql/security/01-roles.sql
+-- Purpose: Create roles for RBAC
+-- Dependencies: None
+-- Usage: Execute once during initial setup
+
+-- TODO: Implement roles
+--
+-- Recommended roles:
+-- 1. readonly_analyst: SELECT only
+-- 2. data_engineer: SELECT, INSERT
+-- 3. security_admin: ALL privileges
+--
+-- Example:
+-- CREATE ROLE IF NOT EXISTS readonly_analyst;
+-- CREATE ROLE IF NOT EXISTS data_engineer;
+-- CREATE ROLE IF NOT EXISTS security_admin;

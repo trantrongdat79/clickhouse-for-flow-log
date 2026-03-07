@@ -1,0 +1,29 @@
+-- filepath: sql/schema/01-flows-local.sql
+-- Purpose: Create replicated table for flow data on each ClickHouse node
+-- Dependencies: Cluster configured, ZooKeeper running
+-- Usage: Execute on any cluster node with ON CLUSTER clause
+
+-- TODO: Implement table creation
+-- Key design decisions to make:
+--   - Engine: ReplicatedMergeTree with ZK path
+--   - Partition: BY toYYYYMMDD(timestamp) for daily partitions
+--   - ORDER BY: (timestamp, hash(src_ip), hash(dst_ip)) for time-first queries
+--   - Codecs: Delta for counters (bytes/packets), LZ4 for compression
+--
+-- Schema should include:
+--   - timestamp DateTime
+--   - src_ip IPv4 / dst_ip IPv4  
+--   - src_port UInt16 / dst_port UInt16
+--   - protocol UInt8
+--   - bytes UInt64 CODEC(Delta, LZ4)
+--   - packets UInt32 CODEC(Delta, LZ4)
+--   - tcp_flags UInt8
+--   - flow_duration UInt32
+--
+-- Example:
+-- CREATE TABLE IF NOT EXISTS flows_local ON CLUSTER '{cluster}'
+-- (
+--     -- fields here
+-- ) ENGINE = ReplicatedMergeTree('/clickhouse/tables/{shard}/flows', '{replica}')
+-- PARTITION BY toYYYYMMDD(timestamp)
+-- ORDER BY (timestamp, cityHash64(src_ip), cityHash64(dst_ip));

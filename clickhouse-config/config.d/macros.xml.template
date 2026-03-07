@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<!-- 
+filepath: clickhouse-config/config.d/macros.xml.template
+Purpose: Node-specific macros for cluster configuration
+When to modify: Generate one per node with unique values
+Usage: Copy to macros.xml and replace {shard} and {replica} values
+Related files: remote_servers.xml (cluster topology)
+-->
+
+<!-- TODO: Generate macros for each node
+
+For single node:
+<clickhouse>
+    <macros>
+        <shard>01</shard>
+        <replica>replica1</replica>
+        <cluster>netflow_cluster</cluster>
+    </macros>
+</clickhouse>
+
+For multi-node:
+- Node 1: shard=01, replica=replica1
+- Node 2: shard=01, replica=replica2 (same shard, different replica)
+- Node 3: shard=02, replica=replica1 (different shard)
+- Node 4: shard=02, replica=replica2
+
+These macros are used in table definitions:
+ENGINE = ReplicatedMergeTree('/clickhouse/tables/{shard}/flows', '{replica}')
+
+This ensures:
+- Replicas in same shard use same ZK path (01/flows)
+- Each replica has unique identifier (replica1, replica2)
+-->
+
+<clickhouse>
+    <macros>
+        <shard>{SHARD_NUMBER}</shard>
+        <replica>{REPLICA_NAME}</replica>
+        <cluster>{CLUSTER_NAME}</cluster>
+    </macros>
+</clickhouse>
