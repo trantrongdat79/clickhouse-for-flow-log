@@ -1,0 +1,23 @@
+# Grafana Datasource Provisioning - ClickHouse
+# This file automatically configures the ClickHouse datasource in Grafana
+
+apiVersion: 1
+
+datasources:
+  - name: ClickHouse
+    type: grafana-clickhouse-datasource
+    access: proxy
+    url: http://clickhouse01:9000
+    jsonData:
+      defaultDatabase: netflow
+      port: 9000
+      server: clickhouse01
+      protocol: native
+      secure: false
+      tlsSkipVerify: true
+    secureJsonData:
+      username: default
+      password: ${CLICKHOUSE_PASSWORD}
+    isDefault: true
+    editable: true
+    version: 1

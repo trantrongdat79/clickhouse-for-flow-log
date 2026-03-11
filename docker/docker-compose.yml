@@ -1,66 +1,129 @@
 version: '3.8'
 
-# TODO: Implement docker-compose configuration
-# 
-# Services to define:
-# 1. ZooKeeper (1-3 nodes depending on scale)
-# 2. ClickHouse nodes (1-4 depending on scale)
-# 3. Prometheus (for comparison)
-# 4. Grafana (for visualization)
-#
-# For minimal testing setup:
-#   - 1 ZooKeeper
-#   - 1 ClickHouse (can't demonstrate replication but simplest start)
-#
-# For replication demo (recommended):
-#   - 1 ZooKeeper
-#   - 2 ClickHouse (1 shard, 2 replicas)
-#
-# For full demo:
-#   - 3 ZooKeeper (ensemble)
-#   - 4 ClickHouse (2 shards × 2 replicas)
-#
-# Key configurations:
-#   - Named volumes for data persistence
-#   - Bridge network for inter-container communication
-#   - Port mappings (8123 HTTP, 9000 native for CH)
-#   - Environment variables from .env file
-#   - Health checks for readiness
-#   - Resource limits (memory, CPU)
-#
-# Example structure:
-# services:
-#   zookeeper01:
-#     image: zookeeper:${ZOOKEEPER_VERSION}
-#     container_name: zookeeper01
-#     volumes:
-#       - zk_data01:/data
-#     environment:
-#       ZOO_MY_ID: 1
-#   
-#   clickhouse01:
-#     image: clickhouse/clickhouse-server:${CLICKHOUSE_VERSION}
-#     container_name: clickhouse01
-#     depends_on:
-#       - zookeeper01
-#     volumes:
-#       - ch_data01:/var/lib/clickhouse
-#       - ../clickhouse-config/config.d:/etc/clickhouse-server/config.d
-#
-# volumes:
+# ClickHouse NetFlow Analytics - Docker Compose Configuration
+# Minimal setup for testing: 1 ClickHouse, 1 Prometheus, 1 Grafana
+# For production/clustering, see docker-compose.cluster.yml
+
+services:
+  # ClickHouse Database Server
+  clickhouse:
+    image: clickhouse/clickhouse-server:${CLICKHOUSE_VERSION:-24.1}
+    container_name: clickhouse01
+    hostname: clickhouse01
+    ports:
+      - "${CLICKHOUSE_HTTP_PORT:-8123}:8123"    # HTTP interface
+      - "${CLICKHOUSE_NATIVE_PORT:-9000}:9000"  # Native protocol
+      - "9009:9009"                              # Inter-server communication
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
+      - ../clickhouse-config/config.d:/etc/clickhouse-server/config.d:ro
+      - ../clickhouse-config/users.d:/etc/clickhouse-server/users.d
+      - ./clickhouse/initdb.d:/docker-entrypoint-initdb.d:ro
+    environment:
+      CLICKHOUSE_DB: netflow
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-secure_password_change_me}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - netflow_network
+    restart: unless-stopped
+
+  # Prometheus Time-Series Database (for comparison)
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_VERSION:-v2.48.0}
+    container_name: prometheus
+    hostname: prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - netflow_network
+    restart: unless-stopped
+
+  # Grafana Visualization Platform
+  grafana:
+    image: grafana/grafana:${GRAFANA_VERSION:-10.2.3}
+    container_name: grafana
+    hostname: grafana
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - grafana_logs:/var/log/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin_change_me}
+      # GF_INSTALL_PLUGINS: grafana-clickhouse-datasource,yesoreyeram-infinity-datasource
+      # Plugins already installed in volume, no need to reinstall
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_SERVER_ROOT_URL: http://localhost:3000
+      GF_LOG_MODE: console file
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - netflow_network
+    restart: unless-stopped
+
+networks:
+  netflow_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.200.0.0/16  # Changed from 172.25.0.0/16 to avoid VPN conflict
+
+volumes:
+  clickhouse_data:
+    driver: local
+  clickhouse_logs:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  grafana_logs:
+    driver: local
 #   zk_data01:
 #   ch_data01:
 #
 # networks:
 #   clickhouse-net:
 
-networks:
-  clickhouse-net:
-    driver: bridge
-
-volumes:
   # TODO: Define volumes for data persistence
-  zk_data:
-  ch_data:
-  prometheus_data:
-  grafana_data:
