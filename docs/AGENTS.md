@@ -16,7 +16,9 @@ This document provides guidelines for AI agents working on the ClickHouse high-c
 - **Avoid unnecessary complexity**
   - Don't add features "just in case"
   - Choose straightforward solutions over clever ones
-  - If a bash script can do it, don't write Python
+  - Avoid over-validation and excessive error handling
+  - Document prerequisites and manual checks instead of coding them
+  - Trust users to verify environment before running scripts 
 
 ### 2. Modularity
 - **Configuration files**: One concern per file
@@ -198,21 +200,16 @@ if __name__ == '__main__':
 
 ### Error Handling (Bash)
 ```bash
-# Good: Explicit error messages and cleanup
+# Good: Simple and direct - document prerequisites instead
+# Prerequisites (document in script header):
+#   - DATA_FILE must exist
+#   - ClickHouse must be running and accessible
+#   - Network connectivity required
+
 function ingest_data() {
     local data_file=$1
-    
-    if [[ ! -f "$data_file" ]]; then
-        echo "ERROR: Data file not found: $data_file" >&2
-        return 1
-    fi
-    
-    if ! curl -f -X POST ...; then
-        echo "ERROR: Ingestion failed for $data_file" >&2
-        return 1
-    fi
-    
-    echo "SUCCESS: Ingested $data_file"
+    curl -X POST "http://clickhouse:8123/" --data-binary @"$data_file"
+    echo "Ingested $data_file"
 }
 ```
 
@@ -245,16 +242,18 @@ ALTER TABLE flows_local ADD INDEX src_ip_bloom ...;
 
 ### Script Testing
 ```bash
-# Include basic validation at start of scripts
-function validate_environment() {
-    local required_vars=("CLICKHOUSE_HOST" "DATA_DIR")
-    
-    for var in "${required_vars[@]}"; do
-        if [[ -z "${!var}" ]]; then
-            echo "ERROR: Required variable $var not set" >&2
-            exit 1
-        fi
-    done
+# Keep scripts simple - document requirements in header instead
+# Required environment variables:
+#   CLICKHOUSE_HOST - ClickHouse server hostname
+#   DATA_DIR - Directory containing data files
+# 
+# Verify manually before running:
+#   echo $CLICKHOUSE_HOST
+#   ls -la $DATA_DIR
+
+function process_data() {
+    # Direct implementation without validation overhead
+    clickhouse-client --host "$CLICKHOUSE_HOST" --query "..."
 }
 ```
 
@@ -285,38 +284,41 @@ curl http://clickhouse:8123/ || true
 CH_01="clickhouse01"
 FK_PT="8123"
 
-# No error checking
-docker exec clickhouse01 clickhouse-client --query "$SQL"
-# What if container doesn't exist?
-
 # Hard-coded paths
 cat /home/user/my-data/flows.json | ...
 
 # Mixed concerns
 # Script that: starts cluster, creates schema, ingests data, runs tests
+
+# Over-engineered validation (adds complexity without real value)
+function validate_everything() {
+    check_docker_running
+    check_container_exists
+    check_network_connectivity
+    check_port_availability
+    check_disk_space
+    # ... 50 more checks
+}
 ```
 
 ### ✅ Do This Instead
 ```bash
-# Explicit error handling
-if ! curl -f http://clickhouse:8123/; then
-    echo "ERROR: ClickHouse not responding" >&2
-    exit 1
-fi
+# Script: ingest-data.sh
+# Prerequisites (verify manually before running):
+#   - ClickHouse is running on port 8123
+#   - DATA_DIR is set and contains .json files
+#   - User has permissions to read data files
 
-# Clear variable names
-CLICKHOUSE_MASTER_HOST="clickhouse01"
-CLICKHOUSE_HTTP_PORT="8123"
+# Clear variable names with defaults
+CLICKHOUSE_MASTER_HOST="${CLICKHOUSE_MASTER_HOST:-clickhouse01}"
+CLICKHOUSE_HTTP_PORT="${CLICKHOUSE_HTTP_PORT:-8123}"
 
-# Defensive programming
-if ! docker exec clickhouse01 clickhouse-client --query "$SQL"; then
-    echo "ERROR: Query failed: $SQL" >&2
-    exit 1
-fi
+# Simple, direct implementation
+docker exec "$CLICKHOUSE_MASTER_HOST" clickhouse-client --query "$SQL"
 
 # Configurable paths
 DATA_DIR="${DATA_DIR:-./data}"
-cat "${DATA_DIR}/flows.json" | ...
+cat "${DATA_DIR}/flows.json" | clickhouse-client --query "INSERT INTO flows FORMAT JSONEachRow"
 
 # Single-purpose scripts
 ./scripts/setup/01-start-cluster.sh
@@ -404,9 +406,9 @@ Related files: macros.xml (node-specific settings)
 - Check: Replica paths in ZooKeeper are created
 
 **Issue: Scripts fail silently**
-- Add: `set -euo pipefail` at start
-- Add: Error messages with `>&2`
-- Add: Exit code checks after each command
+- Add: `set -e` at start to exit on errors
+- Check: Script prerequisites documented?
+- Verify: Environment matches documented requirements manually
 
 ---
 
@@ -418,12 +420,13 @@ Before considering work complete, verify:
 - [ ] Scripts are modular and single-purpose
 - [ ] All files have proper headers/comments
 - [ ] Configuration is externalized (`.env`, not hard-coded)
-- [ ] Error handling is explicit
+- [ ] Prerequisites documented clearly (not coded as validation)
 - [ ] Scripts are idempotent (can run multiple times safely)
-- [ ] Documentation is updated
+- [ ] Documentation is updated with manual verification steps
 - [ ] Examples are provided for non-obvious usage
 - [ ] No secrets committed (passwords, keys, etc.)
 - [ ] Paths are configurable, not hard-coded
+- [ ] Validation overhead minimized - trust documented prerequisites
 
 ---
 

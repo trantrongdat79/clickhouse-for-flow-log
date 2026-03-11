@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<clickhouse>
+    <!-- User configuration for ClickHouse -->
+    <!-- Note: Default user is created via environment variables in docker-compose.yml -->
+    <!-- The entrypoint script creates default-user.xml automatically -->
+    
+    <!-- Profiles define query execution settings -->
+    <profiles>
+        <default>
+            <max_memory_usage>10000000000</max_memory_usage>
+            <use_uncompressed_cache>0</use_uncompressed_cache>
+            <load_balancing>random</load_balancing>
+            <max_execution_time>300</max_execution_time>
+            <max_threads>8</max_threads>
+        </default>
+        
+        <!-- Read-only profile for queries -->
+        <readonly>
+            <readonly>1</readonly>
+            <max_execution_time>60</max_execution_time>
+            <max_threads>4</max_threads>
+        </readonly>
+    </profiles>
+    
+    <!-- Quotas limit resource usage -->
+    <quotas>
+        <default>
+            <interval>
+                <duration>3600</duration>
+                <queries>0</queries>
+                <errors>0</errors>
+                <result_rows>0</result_rows>
+                <read_rows>0</read_rows>
+                <execution_time>0</execution_time>
+            </interval>
+        </default>
+    </quotas>
+</clickhouse>
