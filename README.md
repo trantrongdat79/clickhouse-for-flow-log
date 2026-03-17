@@ -6,23 +6,27 @@ This project demonstrates ClickHouse's capabilities for storing and analyzing hi
 
 ## QuickStart
 
+**New Users**: See [QUICKSTART_GUIDE.md](QUICKSTART_GUIDE.md) for detailed step-by-step instructions.
+
 ```bash
-# 1. Clone and configure
+# 1. Clone and setup
 git clone <repo-url>
 cd clickhouse-for-flow-log
+pip3 install -r requirements.txt
 cp .env.example docker/.env
-# Edit docker/.env with your settings
 
-# 2. Start infrastructure
-cd docker
-docker-compose up -d
+# 2. Start all services (ClickHouse, InfluxDB, Grafana)
+cd docker && docker compose up -d
 
-# 3. Initialize cluster
-cd ../scripts/setup
-./01-setup-cluster.sh
+# 3. Initialize schema
+cd ../scripts/setup && ./02-init-schema.sh
 
-# 4. Verify cluster health
-../monitoring/check_cluster_health.sh
+# 4. Generate and ingest data
+cd ../../data-gen && python3 generate_flows.py --records 100000 --output output/
+cd ../scripts/ingestion && ./ingest_clickhouse.sh ../../data-gen/output
+./ingest_influxdb.sh ../../data-gen/output
+
+# 5. Access Grafana at http://localhost:3000 (admin/admin_change_me)
 ```
 
 ## Project Structure
@@ -39,15 +43,34 @@ See [docs/project-structure.md](docs/project-structure.md) for detailed organiza
 
 ## Documentation
 
+### Getting Started
+- **[QUICKSTART_GUIDE.md](QUICKSTART_GUIDE.md)** - Step-by-step setup guide (START HERE!)
+- **[SYSTEM_REQUIREMENTS.md](SYSTEM_REQUIREMENTS.md)** - System requirements and verification
+- [requirements.txt](requirements.txt) - Python dependencies
+
+### Project Documentation
 - [Architecture Overview](docs/architecture.md) - System design and rationale
 - [Setup Guide](docs/setup-guide.md) - Installation and configuration
 - [Project Structure](docs/project-structure.md) - Directory organization
 - [AI Guidelines](docs/AGENTS.md) - Development standards
 - [Report Outline](docs/report-template-outline.md) - Academic report template
 
+### Component Documentation
+- [ClickHouse Configuration](docker/clickhouse/README.md) - Config structure and setup
+- [InfluxDB Scripts](docker/influxdb/scripts/README.md) - Why scripts directory is empty
+
+### Maintenance
+- [scripts/cleanup_all.sh](scripts/cleanup_all.sh) - Reset project to clean state
+
 ## Requirements
 
-- Docker & Docker Compose
+See [SYSTEM_REQUIREMENTS.md](SYSTEM_REQUIREMENTS.md) for detailed requirements.
+
+**Quick checklist:**
+- Docker 20.10+ & Docker Compose 2.0+
+- Python 3.8+ with pip
+- 4GB RAM, 20GB disk space
+- Ports 3000, 8086, 8123, 9000 available
 - 16GB+ RAM recommended
 - 100GB+ disk space
 - Python 3.8+ (for data generation)
@@ -58,16 +81,3 @@ See [docs/project-structure.md](docs/project-structure.md) for detailed organiza
 - **Records**: 2.5M - 250M flows
 - **Time range**: 60 days
 - **Cardinality**: 100K source IPs, 500K destination IPs
-
-## License
-
-[Specify license]
-
-## Contributors
-
-[Team member names]
-
-## Acknowledgments
-
-- ClickHouse documentation and community
-- Advanced Database Systems course, [University name]

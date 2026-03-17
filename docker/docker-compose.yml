@@ -1,7 +1,5 @@
-version: '3.8'
-
 # ClickHouse NetFlow Analytics - Docker Compose Configuration
-# Minimal setup for testing: 1 ClickHouse, 1 Prometheus, 1 Grafana
+# Minimal setup for testing: 1 ClickHouse, 1 InfluxDB, 1 Grafana
 # For production/clustering, see docker-compose.cluster.yml
 
 services:
@@ -16,15 +14,16 @@ services:
       - "9009:9009"                              # Inter-server communication
     volumes:
       - clickhouse_data:/var/lib/clickhouse
-      - clickhouse_logs:/var/log/clickhouse-server
-      - ../clickhouse-config/config.d:/etc/clickhouse-server/config.d:ro
-      - ../clickhouse-config/users.d:/etc/clickhouse-server/users.d
+      - ../logs/clickhouse01:/var/log/clickhouse-server
+      - ./clickhouse/clickhouse-config/config.d:/etc/clickhouse-server/config.d:ro
+      - ./clickhouse/clickhouse-config/users.d:/etc/clickhouse-server/users.d
       - ./clickhouse/initdb.d:/docker-entrypoint-initdb.d:ro
     environment:
       CLICKHOUSE_DB: netflow
       CLICKHOUSE_USER: default
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-secure_password_change_me}
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+      CLICKHOUSE_ALWAYS_RUN_INITDB_SCRIPTS: 1  # Force init scripts to run even if data exists
     ulimits:
       nofile:
         soft: 262144
@@ -39,30 +38,31 @@ services:
       - netflow_network
     restart: unless-stopped
 
-  # Prometheus Time-Series Database (for comparison)
-  prometheus:
-    image: prom/prometheus:${PROMETHEUS_VERSION:-v2.48.0}
-    container_name: prometheus
-    hostname: prometheus
+  # InfluxDB Time-Series Database (for comparison)
+  influxdb:
+    image: influxdb:${INFLUXDB_VERSION:-2.7}
+    container_name: influxdb
+    hostname: influxdb
     ports:
-      - "${PROMETHEUS_PORT:-9090}:9090"
+      - "${INFLUXDB_PORT:-8086}:8086"
     volumes:
-      - prometheus_data:/prometheus
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./prometheus/rules:/etc/prometheus/rules:ro
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=30d'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--web.enable-lifecycle'
+      - ../data/influxdb:/var/lib/influxdb2
+      - ../logs/influxdb:/var/log/influxdb
+      - ./influxdb/scripts:/docker-entrypoint-initdb.d:ro
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_ADMIN_USER:-admin}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_ADMIN_PASSWORD:-admin_password_change_me}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG:-netflow}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET:-flows}
+      DOCKER_INFLUXDB_INIT_RETENTION: ${INFLUXDB_RETENTION:-30d}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN:-my-super-secret-auth-token}
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      test: ["CMD", "influx", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 30s
     networks:
       - netflow_network
     restart: unless-stopped
@@ -75,22 +75,26 @@ services:
     ports:
       - "${GRAFANA_PORT:-3000}:3000"
     volumes:
-      - grafana_data:/var/lib/grafana
-      - grafana_logs:/var/log/grafana
+      - ../data/grafana:/var/lib/grafana
+      - ../logs/grafana:/var/log/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin_change_me}
-      # GF_INSTALL_PLUGINS: grafana-clickhouse-datasource,yesoreyeram-infinity-datasource
+      GF_INSTALL_PLUGINS: grafana-clickhouse-datasource,yesoreyeram-infinity-datasource,netsage-sankey-panel
       # Plugins already installed in volume, no need to reinstall
-      GF_USERS_ALLOW_SIGN_UP: false
+      GF_USERS_ALLOW_SIGN_UP: "false"
       GF_SERVER_ROOT_URL: http://localhost:3000
       GF_LOG_MODE: console file
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-admin}
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN:-my-super-secret-auth-token}
+      INFLUXDB_ORG: ${INFLUXDB_ORG:-netflow}
+      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET:-flows}
     depends_on:
       clickhouse:
         condition: service_healthy
-      prometheus:
+      influxdb:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
@@ -112,18 +116,21 @@ networks:
 volumes:
   clickhouse_data:
     driver: local
-  clickhouse_logs:
-    driver: local
-  prometheus_data:
-    driver: local
-  grafana_data:
-    driver: local
-  grafana_logs:
-    driver: local
-#   zk_data01:
-#   ch_data01:
-#
-# networks:
-#   clickhouse-net:
+    # This creates a Docker-managed volume stored in Docker's storage area
+    # (typically /var/lib/docker/volumes on Linux with ext4 filesystem)
+    # This avoids NTFS filesystem permission issues with ClickHouse
 
-  # TODO: Define volumes for data persistence
+# Note: Using named volume for ClickHouse data to avoid filesystem compatibility issues
+# Data stored in Docker's internal storage (ext4 on Linux)
+# InfluxDB uses bind mount to NTFS (no permission issues)
+# Logs still use bind mounts to local directories for easy access:
+#   - ../logs/clickhouse01 -> ClickHouse node 1 logs
+#   - ../logs/influxdb -> InfluxDB logs
+#   - ../logs/grafana -> Grafana logs
+#   - ../data/influxdb -> InfluxDB data (NTFS compatible)
+#   - ../data/grafana -> Grafana data (NTFS compatible)
+# Backups (centralized by service):
+#   - ../backups/clickhouse -> Cluster-wide ClickHouse backups
+#   - ../backups/influxdb -> InfluxDB backups
+#   - ../backups/grafana -> Grafana config/dashboard backups
+

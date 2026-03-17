@@ -1,0 +1,161 @@
+# NetFlow Data Generator Configuration
+# Cardinality-Aware Test Levels for ClickHouse vs InfluxDB Benchmarking
+#
+# CRITICAL UNDERSTANDING: InfluxDB Cardinality Limits
+# =====================================================
+# InfluxDB creates an inverted index for EVERY unique combination of tags.
+# With tags: src_ip, dst_ip, protocol, protocol_name, src_port, dst_port
+# Series Cardinality = unique combinations of all tag values
+#
+# InfluxDB Recommendations:
+# - Optimal: < 100K series (fast, efficient)
+# - Good: 100K - 1M series (acceptable performance)
+# - Warning: 1M - 10M series (noticeable degradation)
+# - Critical: > 10M series (severe performance issues, potential OOM)
+#
+# ClickHouse has NO such cardinality limits - it's designed for high-cardinality data.
+# This benchmark demonstrates ClickHouse's superiority as cardinality increases.
+
+# ==============================================================================
+# LEVEL 1: BASELINE - Both Systems Comfortable
+# ==============================================================================
+# Target Cardinality: ~100K-300K series
+# Goal: Establish baseline performance ratio in ideal conditions
+# Expected: Both systems fast, ClickHouse 5-10x faster (architectural advantage)
+baseline:
+  total_records: 1_000_000         # 1M records (~30MB)
+  unique_src_ips: 100              # Low cardinality
+  unique_dst_ips: 500              # Low cardinality
+  time_range_days: 7
+  batch_size: 500_000
+  # Estimated series: 100 × 500 × 3 protocols × ~20 common ports ≈ 300K
+  # InfluxDB: Happy, TSI index in memory, fast writes
+  # ClickHouse: Even faster due to columnar storage
+
+# ==============================================================================
+# LEVEL 2: OPTIMAL - InfluxDB Sweet Spot
+# ==============================================================================
+# Target Cardinality: ~500K-1M series
+# Goal: Test at InfluxDB's recommended upper limit
+# Expected: InfluxDB good performance, ClickHouse 10-15x faster
+optimal:
+  total_records: 5_000_000         # 5M records (~150MB)
+  unique_src_ips: 500
+  unique_dst_ips: 2_000
+  time_range_days: 14
+  batch_size: 1_000_000
+  # Estimated series: 500 × 2000 × 3 × ~20 ports ≈ 1M
+  # InfluxDB: Approaching limits, starting to show memory pressure
+  # ClickHouse: Cardinality advantage becomes visible
+
+# ==============================================================================
+# LEVEL 3: STRESSED - Above Recommended Limits
+# ==============================================================================
+# Target Cardinality: ~2-5M series
+# Goal: Exceed InfluxDB recommendations, observe degradation
+# Expected: InfluxDB noticeable slowdown, ClickHouse 20-30x faster
+stressed:
+  total_records: 20_000_000        # 20M records (~600MB)
+  unique_src_ips: 2_000
+  unique_dst_ips: 5_000
+  time_range_days: 30
+  batch_size: 1_000_000
+  # Estimated series: 2000 × 5000 × 3 × ~20 ports ≈ 3-5M
+  # InfluxDB: TSI index struggles, write amplification begins
+  # ClickHouse: Maintains stable performance
+
+# ==============================================================================
+# LEVEL 4: DEGRADED - Severe Impairment
+# ==============================================================================
+# Target Cardinality: ~10-20M series
+# Goal: Demonstrate severe InfluxDB degradation
+# Expected: InfluxDB significantly impaired, ClickHouse 50-100x faster
+degraded:
+  total_records: 50_000_000        # 50M records (~1.5GB)
+  unique_src_ips: 5_000
+  unique_dst_ips: 20_000
+  time_range_days: 45
+  batch_size: 1_000_000
+  # Estimated series: 5000 × 20000 × 3 × ~20 ports ≈ 10-20M
+  # InfluxDB: Severe performance degradation, possible memory swapping
+  # ClickHouse: Continues to handle efficiently
+
+# ==============================================================================
+# LEVEL 5: CRITICAL - Near Failure
+# ==============================================================================
+# Target Cardinality: ~50M+ series
+# Goal: Push InfluxDB to near-failure, ClickHouse remains stable
+# Expected: InfluxDB may fail or be extremely slow, ClickHouse stable
+critical:
+  total_records: 100_000_000       # 100M records (~3GB)
+  unique_src_ips: 10_000
+  unique_dst_ips: 50_000
+  time_range_days: 60
+  batch_size: 2_000_000
+  # Estimated series: 10000 × 50000 × 3 × ~20 ports ≈ 50M+
+  # InfluxDB: May OOM, extremely slow, or fail to complete
+  # ClickHouse: Designed for this scale, performs well
+
+# ==============================================================================
+# LEGACY CONFIGURATIONS (kept for backward compatibility)
+# ==============================================================================
+
+# Quick test configuration (for rapid iteration)
+quick_test:
+  total_records: 100_000           # 100K records (~3MB)
+  unique_src_ips: 1_000
+  unique_dst_ips: 5_000
+  time_range_days: 1
+  batch_size: 100_000
+
+# Standard test configuration (for development)
+test:
+  total_records: 10_000_000        # 10M records (~300MB)
+  unique_src_ips: 10_000
+  unique_dst_ips: 50_000
+  time_range_days: 7
+  batch_size: 500_000
+
+# Medium scale configuration (for benchmarking)
+medium:
+  total_records: 50_000_000        # 50M records (~1.5GB)
+  unique_src_ips: 50_000
+  unique_dst_ips: 200_000
+  time_range_days: 30
+  batch_size: 1_000_000
+
+# Full scale configuration (production simulation)
+full:
+  total_records: 250_000_000       # 250M records (~7.5GB)
+  unique_src_ips: 100_000
+  unique_dst_ips: 500_000
+  time_range_days: 60
+  batch_size: 1_000_000
+
+# Extra large (for stress testing)
+xlarge:
+  total_records: 1_000_000_000     # 1B records (~30GB)
+  unique_src_ips: 500_000
+  unique_dst_ips: 2_000_000
+  time_range_days: 90
+  batch_size: 5_000_000
+
+# ==============================================================================
+# USAGE EXAMPLES
+# ==============================================================================
+#
+# Level 1 - Baseline:
+#   python generate_flows.py --records 1000000 --unique-src-ips 100 --unique-dst-ips 500 --time-range-days 7
+#
+# Level 2 - Optimal:
+#   python generate_flows.py --records 5000000 --unique-src-ips 500 --unique-dst-ips 2000 --time-range-days 14
+#
+# Level 3 - Stressed:
+#   python generate_flows.py --records 20000000 --unique-src-ips 2000 --unique-dst-ips 5000 --time-range-days 30
+#
+# Level 4 - Degraded:
+#   python generate_flows.py --records 50000000 --unique-src-ips 5000 --unique-dst-ips 20000 --time-range-days 45
+#
+# Level 5 - Critical:
+#   python generate_flows.py --records 100000000 --unique-src-ips 10000 --unique-dst-ips 50000 --time-range-days 60
+

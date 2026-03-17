@@ -1,0 +1,15 @@
+# Python dependencies for ClickHouse NetFlow Analytics Project
+# Install with: pip install -r requirements.txt
+
+# InfluxDB Client (for InfluxDB ingestion pipeline)
+influxdb-client>=1.38.0
+
+# ClickHouse Client (optional, for Python-based operations)
+clickhouse-driver>=0.2.6
+
+# Data Generation (no external dependencies needed - uses stdlib only)
+# The generate_flows.py script uses only Python standard library
+
+# Additional utilities (optional but recommended)
+python-dotenv>=1.0.0  # For loading .env files in Python scripts
+requests>=2.31.0      # For HTTP API interactions

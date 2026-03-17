@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<clickhouse>
+    <!-- Listen on all network interfaces so Grafana can connect -->
+    <listen_host>0.0.0.0</listen_host>
+</clickhouse>

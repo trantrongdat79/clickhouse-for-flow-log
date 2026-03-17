@@ -1,0 +1,2295 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 26,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 21,
+      "panels": [],
+      "title": "Pie Chart: Top Talkers",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "desktsxpyew3kf"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "unit": "decbytes"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "dark-green",
+                  "mode": "shades"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 8,
+        "x": 0,
+        "y": 1
+      },
+      "id": 14,
+      "options": {
+        "displayLabels": [
+          "name",
+          "value"
+        ],
+        "legend": {
+          "calcs": [],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value"
+          ],
+          "width": -10
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "p7"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "desktsxpyew3kf"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.10.1",
+          "queryType": "table",
+          "rawSql": "SELECT\n\tsrc_ip,\n\tSUM(bytes) AS total_bytes\nFROM\n\tnetflow.flows_local\nWHERE timestamp >= $__fromTime AND timestamp <= $__toTime\n  AND src_ip IN ($grafana_ip_src) AND dst_ip IN ($grafana_ip_dst)\nGROUP BY\n\tsrc_ip\nORDER BY\n\ttotal_bytes DESC\nLIMIT\n\t5",
+          "refId": "A"
+        }
+      ],
+      "title": "Top Traffic by Source IPs",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "desktsxpyew3kf"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "unit": "decbytes"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "dark-orange",
+                  "mode": "shades"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 8,
+        "x": 8,
+        "y": 1
+      },
+      "id": 13,
+      "options": {
+        "displayLabels": [
+          "name",
+          "value"
+        ],
+        "legend": {
+          "calcs": [],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value"
+          ],
+          "width": -10
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "desktsxpyew3kf"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.10.1",
+          "queryType": "table",
+          "rawSql": "SELECT\n\tdst_ip,\n\tSUM(bytes) AS total_bytes\nFROM\n\tnetflow.flows_local\nWHERE timestamp >= $__fromTime AND timestamp <= $__toTime\n  AND src_ip IN ($grafana_ip_src) AND dst_ip IN ($grafana_ip_dst)\nGROUP BY\n\tdst_ip\nORDER BY\n\ttotal_bytes DESC\nLIMIT 5",
+          "refId": "A"
+        }
+      ],
+      "title": "Top Traffic by Destination IPs",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "desktsxpyew3kf"
+      },
+      "description": "Calculate the total number of bytes for each ip_proto in the last 24 hours",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "unit": "decbytes"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "dark-red",
+                  "mode": "shades"
+                }
+              }
+            ]
+          },
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "total_bytes",
+                  "tcp",
+                  "icmp",
+                  "udp"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 8,
+        "x": 16,
+        "y": 1
+      },
+      "id": 4,
+      "options": {
+        "displayLabels": [
+          "percent",
+          "name"
+        ],
+        "legend": {
+          "calcs": [],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value"
+          ]
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "desktsxpyew3kf"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.10.1",
+          "queryType": "table",
+          "rawSql": "SELECT\n\tprotocol,\n\tSUM(bytes) AS total_bytes\nFROM\n\tnetflow.flows_local\nWHERE timestamp >= $__fromTime AND timestamp <= $__toTime\n  AND src_ip IN ($grafana_ip_src) AND dst_ip IN ($grafana_ip_dst)\nGROUP BY\n\tprotocol\nORDER BY\n\ttotal_bytes DESC",
+          "refId": "A"
+        }
+      ],
+      "title": "Total IP Protocols",
+      "type": "piechart"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 11
+      },
+      "id": 20,
+      "panels": [],
+      "title": "Time Series: Traffic / Packet Rate (netflow.flows_local)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "desktsxpyew3kf"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "decbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "stdDev"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Mean",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "desktsxpyew3kf"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.10.1",
+          "queryType": "timeseries",
+          "rawSql": "SELECT\n\tsrc_ip,\n\ttimestamp,\n\tSUM(bytes) AS total_bytes\nFROM\n\tnetflow.flows_local\nWHERE timestamp >= $__fromTime AND timestamp <= $__toTime\n  AND src_ip IN ($grafana_ip_src) AND dst_ip IN ($grafana_ip_dst)\nGROUP BY\n\tsrc_ip,\n\ttimestamp\nORDER BY\n  timestamp",
+          "refId": "A"
+        }
+      ],
+      "title": "Source Interface Traffic Total (Bytes)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "desktsxpyew3kf"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "decbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "id": 32,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "stdDev"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Mean",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "desktsxpyew3kf"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.10.1",
+          "queryType": "timeseries",
+          "rawSql": "SELECT\n\tdst_ip,\n\ttimestamp,\n\tSUM(bytes) AS total_bytes\nFROM\n\tnetflow.flows_local\nWHERE timestamp >= $__fromTime AND timestamp <= $__toTime\n  AND src_ip IN ($grafana_ip_src) AND dst_ip IN ($grafana_ip_dst)\nGROUP BY\n\tdst_ip,\n\ttimestamp\nORDER BY\n  timestamp",
+          "refId": "A"
+        }
+      ],
+      "title": "Destination Interface Traffic Total (Bytes)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "desktsxpyew3kf"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "id": 33,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "stdDev"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Mean",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "desktsxpyew3kf"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.10.1",
+          "queryType": "timeseries",
+          "rawSql": "SELECT\n\tsrc_ip,\n\ttimestamp,\n\tSUM(packets) AS total_packets\nFROM\n\tnetflow.flows_local\nWHERE timestamp >= $__fromTime AND timestamp <= $__toTime\n  AND src_ip IN ($grafana_ip_src) AND dst_ip IN ($grafana_ip_dst)\nGROUP BY\n\tsrc_ip,\n\ttimestamp\nORDER BY\n  timestamp",
+          "refId": "A"
+        }
+      ],
+      "title": "Source Interface Traffic Total (PPS)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "desktsxpyew3kf"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "id": 28,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "stdDev"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Mean",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "desktsxpyew3kf"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.10.1",
+          "queryType": "timeseries",
+          "rawSql": "SELECT\n\tdst_ip,\n\ttimestamp,\n\tSUM(packets) AS total_packets\nFROM\n\tnetflow.flows_local\nWHERE timestamp >= $__fromTime AND timestamp <= $__toTime\n  AND src_ip IN ($grafana_ip_src) AND dst_ip IN ($grafana_ip_dst)\nGROUP BY\n\tdst_ip,\n\ttimestamp\nORDER BY\n  timestamp",
+          "refId": "A"
+        }
+      ],
+      "title": "Destination Interface Traffic Total (PPS)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      },
+      "id": 19,
+      "panels": [],
+      "title": "Bar: Top Traffic per Interval",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "desktsxpyew3kf"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "decbytes"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "total_bytes"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "shades"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 12,
+        "x": 0,
+        "y": 37
+      },
+      "id": 5,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [
+            "mean",
+            "stdDev"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "orientation": "horizontal",
+        "showValue": "always",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xField": "ip_src",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 200
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "desktsxpyew3kf"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.10.1",
+          "queryType": "timeseries",
+          "rawSql": "SELECT\n    src_ip,\n    SUM(bytes) AS total_bytes,\n    SUM(packets) AS total_packets\nFROM\n    netflow.flows_local\nWHERE timestamp >= $__fromTime AND timestamp <= $__toTime\n  AND src_ip IN ($grafana_ip_src) AND dst_ip IN ($grafana_ip_dst)\nGROUP BY\n    src_ip\nORDER BY\n\ttotal_bytes DESC\nLIMIT 10\n",
+          "refId": "A"
+        }
+      ],
+      "title": "Top Traffic Source IP (Bytes)",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "desktsxpyew3kf"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "decbytes"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "total_bytes"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "shades"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 12,
+        "x": 12,
+        "y": 37
+      },
+      "id": 8,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [
+            "mean",
+            "stdDev"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 200
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "desktsxpyew3kf"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.10.1",
+          "queryType": "timeseries",
+          "rawSql": "SELECT\n    dst_ip,\n    SUM(bytes) AS total_bytes,\n    SUM(packets) AS total_packets\nFROM\n    netflow.flows_local\nWHERE timestamp >= $__fromTime AND timestamp <= $__toTime\n  AND src_ip IN ($grafana_ip_src) AND dst_ip IN ($grafana_ip_dst)\nGROUP BY\n    dst_ip\nORDER BY\n\ttotal_bytes DESC\nLIMIT 10\n",
+          "refId": "A"
+        }
+      ],
+      "title": "Top Traffic Destination IP (Bytes)",
+      "type": "barchart"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 48
+      },
+      "id": 15,
+      "panels": [],
+      "title": "SanKey Diagram",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "desktsxpyew3kf"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed"
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "decbytes"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "src_ip"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Source IP Address"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "protocol"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Protocol"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "dst_ip"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Destination IP Address"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 49
+      },
+      "id": 27,
+      "options": {
+        "color": "red",
+        "iteration": 10,
+        "labelSize": 15,
+        "monochrome": true,
+        "nodeColor": "red",
+        "nodePadding": 35,
+        "nodeWidth": 10,
+        "valueField": "total_bytes"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "desktsxpyew3kf"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.10.1",
+          "queryType": "table",
+          "rawSql": "SELECT\n\tsrc_ip,\n  protocol,\n\tdst_ip,\n\tSUM(bytes) AS total_bytes\nFROM\n\tnetflow.flows_local\nWHERE timestamp >= $__fromTime AND timestamp <= $__toTime\n  AND src_ip IN ($grafana_ip_src) AND dst_ip IN ($grafana_ip_dst)\nGROUP BY\n\tsrc_ip,\n  protocol,\n\tdst_ip\nORDER BY\n\ttotal_bytes DESC\nLIMIT\n\t5",
+          "refId": "A"
+        }
+      ],
+      "title": "Top Traffic Talkers (24h)",
+      "type": "netsage-sankey-panel"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 59
+      },
+      "id": 17,
+      "panels": [],
+      "title": "GeoMap: Total Traffic by Region",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "desktsxpyew3kf"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "red",
+            "mode": "thresholds"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "percentage",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 75
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "decbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 24,
+        "w": 12,
+        "x": 0,
+        "y": 60
+      },
+      "id": 24,
+      "options": {
+        "basemap": {
+          "config": {},
+          "name": "Layer 0",
+          "type": "default"
+        },
+        "controls": {
+          "mouseWheelZoom": true,
+          "showAttribution": true,
+          "showDebug": false,
+          "showMeasure": false,
+          "showScale": true,
+          "showZoom": true
+        },
+        "layers": [
+          {
+            "config": {
+              "showLegend": true,
+              "style": {
+                "color": {
+                  "field": "src_total_bytes",
+                  "fixed": "dark-green"
+                },
+                "opacity": 0.5,
+                "rotation": {
+                  "fixed": 0,
+                  "max": 360,
+                  "min": -360,
+                  "mode": "mod"
+                },
+                "size": {
+                  "field": "src_total_bytes",
+                  "fixed": 5,
+                  "max": 20,
+                  "min": 2
+                },
+                "symbol": {
+                  "fixed": "img/icons/marker/circle.svg",
+                  "mode": "fixed"
+                },
+                "symbolAlign": {
+                  "horizontal": "center",
+                  "vertical": "center"
+                },
+                "textConfig": {
+                  "fontSize": 12,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "textAlign": "center",
+                  "textBaseline": "middle"
+                }
+              }
+            },
+            "filterData": {
+              "id": "byRefId",
+              "options": "src"
+            },
+            "location": {
+              "latitude": "src_geo_latitude",
+              "longitude": "src_geo_longitude",
+              "mode": "coords"
+            },
+            "name": "Source Traffic",
+            "tooltip": true,
+            "type": "markers"
+          },
+          {
+            "config": {
+              "showLegend": true,
+              "style": {
+                "color": {
+                  "field": "dst_total_bytes",
+                  "fixed": "dark-green"
+                },
+                "opacity": 0.4,
+                "rotation": {
+                  "fixed": 0,
+                  "max": 360,
+                  "min": -360,
+                  "mode": "mod"
+                },
+                "size": {
+                  "field": "dst_total_bytes",
+                  "fixed": 5,
+                  "max": 20,
+                  "min": 2
+                },
+                "symbol": {
+                  "fixed": "img/icons/marker/circle.svg",
+                  "mode": "fixed"
+                },
+                "symbolAlign": {
+                  "horizontal": "center",
+                  "vertical": "center"
+                },
+                "text": {
+                  "field": "",
+                  "fixed": "",
+                  "mode": "fixed"
+                },
+                "textConfig": {
+                  "fontSize": 12,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "textAlign": "center",
+                  "textBaseline": "middle"
+                }
+              }
+            },
+            "filterData": {
+              "id": "byRefId",
+              "options": "dst"
+            },
+            "location": {
+              "latitude": "dst_geo_latitude",
+              "longitude": "dst_geo_longitude",
+              "mode": "coords"
+            },
+            "name": "Destination Traffic",
+            "tooltip": true,
+            "type": "markers"
+          }
+        ],
+        "tooltip": {
+          "mode": "details"
+        },
+        "view": {
+          "allLayers": true,
+          "id": "coords",
+          "lat": 16,
+          "lon": 107,
+          "zoom": 6.2
+        }
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "desktsxpyew3kf"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": false,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.10.1",
+          "queryType": "table",
+          "rawSql": "SELECT\n\tsrc_geo_latitude,\n\tsrc_geo_longitude,\n\tsrc_ip,\n\tSUM(bytes) AS src_total_bytes\nFROM\n\tnetflow.flows_local\nWHERE timestamp >= $__fromTime AND timestamp <= $__toTime\n  AND src_geo_latitude != 0\n  AND src_ip IN ($grafana_ip_src) AND dst_ip IN ($grafana_ip_dst)\nGROUP BY\n\tsrc_geo_latitude,\n\tsrc_geo_longitude,\n\tsrc_ip\nORDER BY\n\tsrc_total_bytes DESC\nLIMIT\n\t100\n",
+          "refId": "src"
+        },
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "desktsxpyew3kf"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "hide": false,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.10.1",
+          "queryType": "table",
+          "rawSql": "SELECT\n\tdst_geo_latitude,\n\tdst_geo_longitude,\n\tdst_ip,\n\tSUM(bytes) AS dst_total_bytes\nFROM\n\tnetflow.flows_local\nWHERE timestamp >= $__fromTime AND timestamp <= $__toTime\n  AND dst_geo_latitude != 0\n  AND src_ip IN ($grafana_ip_src) AND dst_ip IN ($grafana_ip_dst)\nGROUP BY\n\tdst_geo_latitude,\n\tdst_geo_longitude,\n\tdst_ip\nORDER BY\n\tdst_total_bytes DESC\nLIMIT\n\t100\n",
+          "refId": "dst"
+        }
+      ],
+      "title": "Traffic Map in VietNam Region by Source",
+      "type": "geomap"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "desktsxpyew3kf"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "decbytes"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "total_bytes"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "semi-dark-green",
+                  "mode": "shades"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 12,
+        "y": 60
+      },
+      "id": 25,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [
+            "max",
+            "min"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "orientation": "horizontal",
+        "showValue": "never",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 100
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "desktsxpyew3kf"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.10.1",
+          "queryType": "timeseries",
+          "rawSql": "SELECT\n    src_ip,\n    SUM(bytes) AS total_bytes,\n    SUM(packets) AS total_packets\nFROM\n    netflow.flows_local\nWHERE timestamp >= $__fromTime AND timestamp <= $__toTime\n  AND src_ip IN ($grafana_ip_src) AND dst_ip IN ($grafana_ip_dst)\nGROUP BY\n    src_ip\nORDER BY\n\ttotal_bytes DESC\nLIMIT 10",
+          "refId": "A"
+        }
+      ],
+      "title": "Top Traffic Source IP (Bytes)",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "desktsxpyew3kf"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "decbytes"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "total_bytes"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "shades"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 12,
+        "y": 72
+      },
+      "id": 26,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [
+            "mean",
+            "stdDev"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "orientation": "horizontal",
+        "showValue": "never",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 100
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "desktsxpyew3kf"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "meta": {
+            "builderOptions": {
+              "columns": [],
+              "database": "",
+              "limit": 1000,
+              "mode": "list",
+              "queryType": "table",
+              "table": ""
+            }
+          },
+          "pluginVersion": "4.10.1",
+          "queryType": "timeseries",
+          "rawSql": "SELECT\n    dst_ip,\n    SUM(bytes) AS total_bytes,\n    SUM(packets) AS total_packets\nFROM\n    netflow.flows_local\nWHERE timestamp >= $__fromTime AND timestamp <= $__toTime\n  AND src_ip IN ($grafana_ip_src) AND dst_ip IN ($grafana_ip_dst)\nGROUP BY\n    dst_ip\nORDER BY\n\ttotal_bytes DESC\nLIMIT 10\n",
+          "refId": "A"
+        }
+      ],
+      "title": "Top Traffic Destination IP (Bytes)",
+      "type": "barchart"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 84
+      },
+      "id": 18,
+      "panels": [],
+      "title": "Table: Raw Log",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "desktsxpyew3kf"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "timestamp"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 199
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 85
+      },
+      "id": 22,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "timestamp"
+          }
+        ]
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "builderOptions": {
+            "aggregates": [],
+            "columns": [
+              {
+                "alias": "*",
+                "custom": false,
+                "name": "*",
+                "type": "String"
+              }
+            ],
+            "database": "netflow",
+            "filters": [],
+            "groupBy": [],
+            "limit": 1000,
+            "meta": {},
+            "mode": "list",
+            "orderBy": [
+              {
+                "dir": "DESC",
+                "name": "timestamp"
+              }
+            ],
+            "queryType": "table",
+            "table": "flows_local"
+          },
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "desktsxpyew3kf"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "meta": {
+            "builderOptions": {
+              "aggregates": [],
+              "columns": [
+                {
+                  "alias": "*",
+                  "custom": false,
+                  "name": "*",
+                  "type": "String"
+                }
+              ],
+              "database": "netflow",
+              "filters": [],
+              "groupBy": [],
+              "limit": 1000,
+              "meta": {},
+              "mode": "list",
+              "orderBy": [
+                {
+                  "dir": "DESC",
+                  "name": "timestamp"
+                }
+              ],
+              "queryType": "table",
+              "table": "flows_local"
+            }
+          },
+          "pluginVersion": "4.10.1",
+          "queryType": "table",
+          "rawSql": "SELECT * FROM netflow.flows_local \nWHERE timestamp >= $__fromTime AND timestamp <= $__toTime\n  AND src_ip IN ($grafana_ip_src) AND dst_ip IN ($grafana_ip_dst)\nORDER BY timestamp DESC LIMIT 1000\n",
+          "refId": "A"
+        }
+      ],
+      "title": "Complete VPC Flow Logs (Filtered)",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "desktsxpyew3kf"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "timestamp"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 199
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 97
+      },
+      "id": 3,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "timestamp"
+          }
+        ]
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "builderOptions": {
+            "aggregates": [],
+            "columns": [
+              {
+                "alias": "*",
+                "custom": false,
+                "name": "*",
+                "type": "String"
+              }
+            ],
+            "database": "netflow",
+            "filters": [],
+            "groupBy": [],
+            "limit": 1000,
+            "meta": {},
+            "mode": "list",
+            "orderBy": [
+              {
+                "dir": "DESC",
+                "name": "timestamp"
+              }
+            ],
+            "queryType": "table",
+            "table": "flows_local"
+          },
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "desktsxpyew3kf"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "meta": {
+            "builderOptions": {
+              "aggregates": [],
+              "columns": [
+                {
+                  "alias": "*",
+                  "custom": false,
+                  "name": "*",
+                  "type": "String"
+                }
+              ],
+              "database": "netflow",
+              "filters": [],
+              "groupBy": [],
+              "limit": 1000,
+              "meta": {},
+              "mode": "list",
+              "orderBy": [
+                {
+                  "dir": "DESC",
+                  "name": "timestamp"
+                }
+              ],
+              "queryType": "table",
+              "table": "flows_local"
+            }
+          },
+          "pluginVersion": "4.10.1",
+          "queryType": "table",
+          "rawSql": "SELECT * \nFROM netflow.flows_local \nWHERE timestamp >= $__fromTime AND timestamp <= $__toTime\nORDER BY timestamp DESC LIMIT 1000\n",
+          "refId": "A"
+        }
+      ],
+      "title": "Complete VPC Flow Logs (No Filtered)",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 108
+      },
+      "id": 16,
+      "panels": [],
+      "title": "Others 2",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "default": false,
+        "type": "grafana-clickhouse-datasource",
+        "uid": "desktsxpyew3kf"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 109
+      },
+      "id": 1,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "stdDev"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "builderOptions": {
+            "aggregates": [
+              {
+                "aggregateType": "count",
+                "column": "*"
+              }
+            ],
+            "columns": [
+              {
+                "hint": "time",
+                "name": "timestamp",
+                "type": "DateTime"
+              }
+            ],
+            "database": "netflow",
+            "filters": [
+              {
+                "condition": "AND",
+                "filterType": "custom",
+                "hint": "time",
+                "key": "",
+                "operator": "WITH IN DASHBOARD TIME RANGE",
+                "type": "datetime"
+              }
+            ],
+            "groupBy": [],
+            "limit": 1000,
+            "meta": {},
+            "mode": "trend",
+            "orderBy": [
+              {
+                "default": true,
+                "dir": "ASC",
+                "hint": "time",
+                "name": ""
+              }
+            ],
+            "queryType": "timeseries",
+            "table": "flows_local"
+          },
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "desktsxpyew3kf"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "meta": {
+            "builderOptions": {
+              "aggregates": [
+                {
+                  "aggregateType": "count",
+                  "column": "*"
+                }
+              ],
+              "columns": [
+                {
+                  "hint": "time",
+                  "name": "timestamp",
+                  "type": "DateTime"
+                }
+              ],
+              "database": "netflow",
+              "filters": [
+                {
+                  "condition": "AND",
+                  "filterType": "custom",
+                  "hint": "time",
+                  "key": "",
+                  "operator": "WITH IN DASHBOARD TIME RANGE",
+                  "type": "datetime"
+                }
+              ],
+              "groupBy": [],
+              "limit": 1000,
+              "meta": {},
+              "mode": "trend",
+              "orderBy": [
+                {
+                  "default": true,
+                  "dir": "ASC",
+                  "hint": "time",
+                  "name": ""
+                }
+              ],
+              "queryType": "timeseries",
+              "table": "flows_local"
+            }
+          },
+          "pluginVersion": "4.10.1",
+          "queryType": "timeseries",
+          "rawSql": "SELECT $__timeInterval(timestamp) as \"time\", count(*) \nFROM netflow.flows_local \nWHERE timestamp >= $__fromTime AND timestamp <= $__toTime GROUP BY time ORDER BY time ASC LIMIT 1000",
+          "refId": "A"
+        }
+      ],
+      "title": "flows_local message counter",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "",
+  "schemaVersion": 39,
+  "tags": [
+    "VPC Flow Logs"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "desktsxpyew3kf"
+        },
+        "definition": "SELECT DISTINCT src_ip\nFROM netflow.flows_local",
+        "error": {},
+        "hide": 0,
+        "includeAll": true,
+        "label": "Source IP Address",
+        "multi": true,
+        "name": "grafana_ip_src",
+        "options": [],
+        "query": "SELECT DISTINCT src_ip\nFROM netflow.flows_local",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "desktsxpyew3kf"
+        },
+        "definition": "SELECT DISTINCT dst_ip\nFROM netflow.flows_local",
+        "error": {},
+        "hide": 0,
+        "includeAll": true,
+        "label": "Destination IP Address",
+        "multi": true,
+        "name": "grafana_ip_dst",
+        "options": [],
+        "query": "SELECT DISTINCT dst_ip\nFROM netflow.flows_local",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-5m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "VPC Flow Log Dashboard",
+  "uid": "VPCFlowLogWithVariables",
+  "version": 23,
+  "weekStart": ""
+}

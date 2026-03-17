@@ -10,7 +10,7 @@
           <networks>
             <ip>::/0</ip>
           </networks>
-          <password>secure_password_change_me</password>
+          <password>admin</password>
           <quota>default</quota>
           <access_management>1</access_management>
         </default>

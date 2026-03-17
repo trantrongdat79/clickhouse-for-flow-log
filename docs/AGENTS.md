@@ -412,6 +412,247 @@ Related files: macros.xml (node-specific settings)
 
 ---
 
+## ClickHouse-Specific Insights
+
+This section captures practical lessons learned from implementing the NetFlow analytics project.
+
+### Storage Configuration
+
+**Always use dedicated database, not `default`**:
+```sql
+-- Good: Organized, easy to manage
+CREATE DATABASE netflow;
+USE netflow;
+CREATE TABLE flows_local ...;
+
+-- Bad: Pollutes default database
+CREATE TABLE flows_local ...;
+```
+
+**Docker volumes > bind mounts** (avoids filesystem issues):
+```yaml
+# Good: Named volume (works on all filesystems)
+volumes:
+  - clickhouse_data:/var/lib/clickhouse
+
+# Bad: Bind mount (fails on NTFS with permission errors)
+volumes:
+  - ../data/clickhouse01:/var/lib/clickhouse
+```
+
+**Monitor compression ratios** during testing (should be >1.2x):
+```sql
+SELECT 
+    formatReadableSize(sum(bytes_on_disk)) as compressed,
+    formatReadableSize(sum(data_uncompressed_bytes)) as uncompressed,
+    round(sum(data_uncompressed_bytes) / sum(bytes_on_disk), 2) as ratio
+FROM system.parts
+WHERE database = 'netflow' AND active;
+-- Expected: ratio > 1.2 (NetFlow typically 1.3-1.5x)
+```
+
+### Schema Design Patterns
+
+**Primary Key: Time-first ordering** enables partition pruning:
+```sql
+-- Good: Time first, then high-cardinality fields
+ORDER BY (timestamp, cityHash64(src_ip), cityHash64(dst_ip))
+
+-- Why: Most queries filter by time range
+-- Enables: Partition pruning (dramatic performance improvement)
+```
+
+**Codec selection** matched to data characteristics:
+```sql
+-- Timestamps: DoubleDelta (time-series data)
+timestamp DateTime CODEC(DoubleDelta, LZ4)
+
+-- Counters: Delta (incremental values)
+bytes UInt64 CODEC(Delta, LZ4)
+packets UInt32 CODEC(Delta, LZ4)
+
+-- Floats: Gorilla (floating point compression)
+geo_latitude Float32 CODEC(Gorilla, LZ4)
+```
+
+**Skip Indexes: Bloom filters** on high-cardinality dimensions:
+```sql
+-- Critical for IP lookups (10-100x speedup)
+ALTER TABLE flows_local ADD INDEX src_ip_bloom src_ip TYPE bloom_filter;
+ALTER TABLE flows_local ADD INDEX dst_ip_bloom dst_ip TYPE bloom_filter;
+
+-- Test impact:
+-- Without index: 5-10 seconds for specific IP lookup
+-- With index: <0.1 seconds
+```
+
+** Partitioning: Daily partitions** work well for 30-90 day retention:
+```sql
+-- Good: Daily partitioning
+PARTITION BY toYYYYMMDD(timestamp)
+-- Creates: 30 partitions for 30 days (manageable)
+-- Enables: Efficient partition pruning in queries
+
+-- Avoid: Too granular (hourly = 720 partitions for 30 days)
+-- Avoid: Too coarse (monthly = queries scan 30+ days when filtering by day)
+```
+
+### Ingestion Best Practices
+
+**JSONEachRow format** balances readability and performance:
+```bash
+# Good: Human-readable, efficient, native support
+echo '{"timestamp":"2026-03-16 12:00:00","src_ip":"10.0.0.1",...}' | \
+  clickhouse-client --query "INSERT INTO flows FORMAT JSONEachRow"
+
+# Alternative: CSV (faster but less flexible)
+# Alternative: Native (fastest but binary, hard to debug)
+```
+
+**Docker copy + pipe method** most reliable across platforms:
+```bash
+# Most reliable (avoids filesystem permission issues)
+docker cp flows.json clickhouse01:/tmp/flows.json
+docker exec clickhouse01 sh -c \
+  "cat /tmp/flows.json | clickhouse-client --password admin \
+   --query 'INSERT INTO netflow.flows_local FORMAT JSONEachRow'"
+
+# Avoid: Direct file path (fails with NTFS permissions)
+docker exec clickhouse01 clickhouse-client \
+  --query "INSERT INTO flows FORMAT JSONEachRow" < /mnt/data/flows.json
+```
+
+**Monitor memory** during ingestion:
+```bash
+# Real-time monitoring
+watch -n 1 'docker stats clickhouse01 --no-stream'
+
+# Check insertion rate
+docker exec clickhouse01 clickhouse-client --password admin --query "
+SELECT 
+    sum(ProfileEvent_InsertedRows) as total_rows,
+    sum(ProfileEvent_InsertedRows) / max(query_duration_ms) * 1000 as rows_per_sec
+FROM system.query_log
+WHERE type = 'QueryFinish' AND query_kind = 'Insert'
+  AND event_time > now() - INTERVAL 1 MINUTE
+"
+```
+
+### Query Optimization
+
+**Always include timestamp range** (enables partition pruning):
+```sql
+-- Good: Uses partition pruning
+SELECT * FROM flows 
+WHERE timestamp >= '2026-03-01' AND timestamp < '2026-03-02'
+  AND src_ip = '10.0.0.1';
+
+-- Bad: Full table scan (slow!)
+SELECT * FROM flows WHERE src_ip = '10.0.0.1';
+
+-- Verify with EXPLAIN:
+EXPLAIN SELECT ... -- Check for "ReadFromMergeTree" with partition pruning
+```
+
+**Materialized views** for repeated aggregations:
+```sql
+-- Pre-aggregate hourly statistics (10-100x speedup)
+CREATE MATERIALIZED VIEW flows_hourly_mv
+ENGINE = SummingMergeTree()
+ORDER BY (hour, src_ip, dst_ip)
+AS SELECT
+    toStartOfHour(timestamp) as hour,
+    src_ip,
+    dst_ip,
+    sum(bytes) as total_bytes,
+    count() as flow_count
+FROM flows_local
+GROUP BY hour, src_ip, dst_ip;
+
+-- Query the view instead of raw table (much faster)
+SELECT * FROM flows_hourly_mv WHERE hour >= '2026-03-01';
+```
+
+**Test queries on small dataset first**:
+```sql
+-- Develop query with LIMIT
+SELECT ... FROM flows WHERE timestamp > now() - INTERVAL 1 HOUR LIMIT 1000;
+
+-- Once optimized, remove LIMIT for production
+SELECT ... FROM flows WHERE timestamp > now() - INTERVAL 1 DAY;
+```
+
+### Comparison Database Selection
+
+**InfluxDB chosen over Prometheus** for this project because:
+- **Better cardinality handling**: ~1M series vs Prometheus ~100K
+- **More direct comparison**: Both are time-series databases
+- **Easier to demonstrate**: Tag model similar to Prometheus labels
+- **Still struggles**: High-cardinality NetFlow data exceeds InfluxDB limits
+- **Proves point**: ClickHouse's unlimited cardinality advantage
+
+**Key architectural difference**:
+- **InfluxDB**: Tag/field separation, tags fully indexed (cardinality penalty)
+- **ClickHouse**: All columns treated equally, no cardinality penalty
+- **Result**: ClickHouse handles NetFlow's billions of unique combinations effortlessly
+
+### Data Generation for Testing
+
+**Use realistic distributions** (mimics production traffic):
+```python
+# Pareto distribution (80/20 rule)
+# 20% of IPs generate 80% of traffic
+def generate_pareto_ips(total_ips, alpha=1.16):
+    return pareto.rvs(alpha, size=total_ips)
+
+# Log-normal for bytes/packets (most flows small, few large)
+bytes = lognormal(mean=log(320*1024), sigma=1.5)
+```
+
+**Cardinality targets for meaningful testing**:
+- **10K src IPs, 50K dst IPs**: Basic testing (~500M combinations)
+- **50K src IPs, 200K dst IPs**: **RECOMMENDED** (~10B combinations)
+- **100K src IPs, 500K dst IPs**: Extreme testing (~50B combinations)
+
+**Dataset sizing for limited storage** (based on project experience):
+- **10M records**: ~5GB total (basic functionality)
+- **50M records**: ~23GB total (**RECOMMENDED for comparisons**)
+- **100M records**: ~46GB total (requires cleanup: `docker system prune -a`)
+
+### Operational Lessons
+
+**Authentication required** in all commands:
+```bash
+# Always pass --password
+docker exec clickhouse01 clickhouse-client --password admin --query "..."
+
+# Without password: Authentication failed error
+docker exec clickhouse01 clickhouse-client --query "..."  # ❌ Fails
+```
+
+**Verification after schema changes**:
+```sql
+-- Verify table created
+SELECT count(*) FROM system.tables 
+WHERE database = 'netflow' AND name = 'flows_local';
+-- Expected: 1
+
+-- Check indexes
+SELECT * FROM system.data_skipping_indices WHERE table = 'flows_local';
+
+-- Verify data ingested
+SELECT count(), min(timestamp), max(timestamp) FROM netflow.flows_local;
+```
+
+**Internal Docker network sufficient** for single-host setup:
+```yaml
+# No need for complex networking
+networks:
+  clickhouse_network:
+    driver: bridge  # Simple and works
+```
+---
+
 ## Review Checklist
 
 Before considering work complete, verify:
@@ -445,4 +686,6 @@ Before considering work complete, verify:
 ---
 
 ## Changelog
+- 2026-03-16: Added ClickHouse-Specific Insights section with practical lessons learned
+- 2026-03-16: Updated comparison database from Prometheus to InfluxDB
 - 2026-03-06: Initial version - Core principles and standards established
