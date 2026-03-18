@@ -30,14 +30,14 @@ CREATE TABLE IF NOT EXISTS netflow.flows_local
     protocol UInt8 CODEC(LZ4),
     tcp_flags UInt8 CODEC(LZ4),
     
-    -- Traffic metrics (use Delta codec for monotonic counters)
-    bytes UInt64 CODEC(Delta, LZ4),
-    packets UInt32 CODEC(Delta, LZ4),
-    flow_duration UInt32 CODEC(Delta, LZ4),
+    -- Traffic metrics
+    bytes UInt64 CODEC(LZ4),
+    packets UInt32 CODEC(LZ4),
+    flow_duration UInt32 CODEC(LZ4),
     
     -- Derived fields for analytics (materialized)
-    flow_start DateTime MATERIALIZED timestamp - INTERVAL flow_duration SECOND,
-    protocol_name String MATERIALIZED CASE protocol
+    flow_start DateTime MATERIALIZED toDateTime(toUnixTimestamp(timestamp) - flow_duration),
+    protocol_name LowCardinality(String) MATERIALIZED CASE protocol
         WHEN 1 THEN 'ICMP'
         WHEN 6 THEN 'TCP'
         WHEN 17 THEN 'UDP'
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS netflow.flows_local
 )
 ENGINE = MergeTree()
 PARTITION BY toYYYYMMDD(timestamp)
-ORDER BY (timestamp, cityHash64(src_ip), cityHash64(dst_ip))
+ORDER BY (toStartOfHour(timestamp), protocol, src_ip, dst_ip)
 SETTINGS 
     index_granularity = 8192,
     -- Enable compression for better storage efficiency

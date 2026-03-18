@@ -173,7 +173,7 @@ class NetFlowGenerator:
         # Weight towards business hours (8AM-6PM)
         hour = int(random.triangular(0, 23, 13))  # Peak at 1PM
         minute = random.randint(0, 59)
-        second = random.randint(0, 59)
+        second = random.randrange(0, 56, 5)
         
         flow_time = flow_time.replace(hour=hour, minute=minute, second=second)
         return flow_time.strftime('%Y-%m-%d %H:%M:%S')
@@ -275,7 +275,7 @@ def main():
     parser.add_argument('--batch-size', type=int, default=500_000,
                         help='Records per output file (default: 500K)')
     parser.add_argument('--start-time', type=str, default=None,
-                        help='Start timestamp (default: 7 days ago) format: YYYY-MM-DD')
+                        help='Start timestamp (default: "time-range-days" days ago) format: YYYY-MM-DD')
     
     args = parser.parse_args()
     

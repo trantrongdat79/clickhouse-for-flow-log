@@ -13,3 +13,4 @@ clickhouse-driver>=0.2.6
 # Additional utilities (optional but recommended)
 python-dotenv>=1.0.0  # For loading .env files in Python scripts
 requests>=2.31.0      # For HTTP API interactions
+clickhouse-connect

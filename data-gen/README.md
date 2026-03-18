@@ -6,13 +6,13 @@ This directory contains scripts for generating synthetic NetFlow data with geo-l
 
 ```bash
 # Quick test - 100K records (~3MB, ~30 seconds)
-python generate_flows.py --records 100000 --unique-src-ips 1000 --unique-dst-ips 5000 --time-range-days 1
+python3 generate_flows.py --records 100000 --unique-src-ips 1000 --unique-dst-ips 5000 --time-range-days 1
 
 # Standard test - 10M records (~300MB, ~5 minutes)
-python generate_flows.py --records 10000000 --unique-src-ips 10000 --unique-dst-ips 50000 --time-range-days 7
+python3 generate_flows.py --records 10000000 --unique-src-ips 10000 --unique-dst-ips 50000 --time-range-days 7
 
 # Full scale - 250M records (~7.5GB, ~2 hours)
-python generate_flows.py --records 250000000 --unique-src-ips 100000 --unique-dst-ips 500000 --time-range-days 60
+python3 generate_flows.py --records 250000000 --unique-src-ips 100000 --unique-dst-ips 500000 --time-range-days 60
 ```
 
 ## Features

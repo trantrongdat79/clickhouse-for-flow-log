@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """
 Script: ingest_influxdb.py
-Purpose: Ingest JSONEachRow flow data into InfluxDB 2.x
+Purpose: Streamlined InfluxDB data ingestion with benchmarking
 Usage: python ingest_influxdb.py [data_directory]
-Author: NetFlow Analytics Team
-Date: 2026-03-16
 """
 
 import os
@@ -12,8 +10,8 @@ import sys
 import json
 import time
 import glob
+import subprocess
 from datetime import datetime
-from pathlib import Path
 
 try:
     from influxdb_client import InfluxDBClient, Point
@@ -23,57 +21,31 @@ except ImportError:
     print("Install it with: pip install influxdb-client")
     sys.exit(1)
 
-# Configuration from environment variables with defaults
+# Configuration
 INFLUXDB_URL = os.getenv("INFLUXDB_URL", "http://localhost:8086")
 INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN", "my-super-secret-auth-token")
 INFLUXDB_ORG = os.getenv("INFLUXDB_ORG", "netflow")
 INFLUXDB_BUCKET = os.getenv("INFLUXDB_BUCKET", "flows")
+CONTAINER_NAME = "influxdb"
+DATA_PATH = "/var/lib/influxdb2"
 
-# ANSI color codes
-GREEN = '\033[0;32m'
-YELLOW = '\033[1;33m'
-RED = '\033[0;31m'
-BLUE = '\033[0;34m'
-NC = '\033[0m'  # No Color
-
-
-def print_banner():
-    """Print the script banner"""
-    print("=" * 50)
-    print("InfluxDB Data Ingestion")
-    print("=" * 50)
-    print()
-    print("Configuration:")
-    print(f"  InfluxDB URL:  {INFLUXDB_URL}")
-    print(f"  Organization:  {INFLUXDB_ORG}")
-    print(f"  Bucket:        {INFLUXDB_BUCKET}")
-    print()
-
-
-def format_number(n):
-    """Format number with thousands separators"""
-    return f"{n:,}"
-
+def get_storage():
+    """Get InfluxDB storage size in Bytes using docker exec du"""
+    cmd = ["docker", "exec", CONTAINER_NAME, "du", "-sb", DATA_PATH]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode == 0:
+        size_bytes = int(result.stdout.split()[0])
+        return size_bytes
+    return 0
 
 def convert_json_to_point(record):
-    """
-    Convert a JSON flow record to an InfluxDB Point
-    
-    InfluxDB data model:
-    - Measurement: flows
-    - Tags: indexed fields for fast filtering (src_ip, dst_ip, protocol)
-    - Fields: actual metric values (bytes, packets, flow_duration, coordinates)
-    - Timestamp: time of the flow
-    """
-    # Parse timestamp from JSON
+    """Convert JSON flow record to InfluxDB Point"""
     ts = datetime.strptime(record['timestamp'], '%Y-%m-%d %H:%M:%S')
     
-    # Determine protocol name
     protocol_map = {1: 'ICMP', 6: 'TCP', 17: 'UDP'}
     protocol_num = record['protocol']
     protocol_name = protocol_map.get(protocol_num, 'Other')
     
-    # Create Point - measurement name is "flows"
     point = Point("flows") \
         .time(ts) \
         .tag("src_ip", record['src_ip']) \
@@ -94,247 +66,136 @@ def convert_json_to_point(record):
     return point
 
 
-def get_record_count(client, timeout_seconds=30):
-    """Query the total number of records in the bucket"""
-    # For large datasets, use a simpler count query with limited time range
-    # Counting all records from 0 can be very slow
-    query = f'''
-    from(bucket: "{INFLUXDB_BUCKET}")
-      |> range(start: -30d)
-      |> filter(fn: (r) => r._measurement == "flows")
-      |> count()
-      |> group()
-      |> sum()
-    '''
-    
-    try:
-        query_api = client.query_api()
-        result = query_api.query(query, org=INFLUXDB_ORG)
-        
-        # Parse result
-        total = 0
-        for table in result:
-            for record in table.records:
-                if hasattr(record, '_value'):
-                    total += record.get_value()
-        
-        return total
-    except Exception as e:
-        print(f"{YELLOW}Warning: Could not query record count (this is normal for large datasets): {e}{NC}")
-        return -1  # Return -1 to indicate count unavailable
-
-
-def ingest_file(client, write_api, filepath, use_async=True):
-    """
-    Ingest a single JSON file into InfluxDB
-    Returns: (records_count, file_size_bytes, elapsed_seconds)
-    """
-    filename = os.path.basename(filepath)
-    filesize = os.path.getsize(filepath)
-    filesize_mb = filesize / 1024 / 1024
-    
-    print(f"{BLUE}Processing:{NC} {filename} ({filesize_mb:.2f} MB)")
-    
-    start_time = time.time()
-    records_count = 0
+def ingest_file(write_api, filepath):
+    """Ingest a single JSON file into InfluxDB"""
     batch = []
-    # Async mode uses internal batching, so we use smaller batches here
-    # Sync mode benefits from larger batches
-    batch_size = 1000 if use_async else 5000
+    batch_size = 5000
     
-    try:
-        with open(filepath, 'r') as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                
-                try:
-                    record = json.loads(line)
-                    point = convert_json_to_point(record)
-                    batch.append(point)
-                    records_count += 1
-                    
-                    # Write batch when it reaches batch_size
-                    if len(batch) >= batch_size:
-                        write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=batch)
-                        batch = []
-                        
-                except json.JSONDecodeError as e:
-                    print(f"{YELLOW}Warning: Skipping invalid JSON line: {e}{NC}")
-                    continue
-                except Exception as e:
-                    print(f"{YELLOW}Warning: Error processing record: {e}{NC}")
-                    continue
-        
-        # Write remaining records in batch
-        if batch:
-            write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=batch)
-        
-        # For async mode, flush to ensure all writes complete
-        if use_async:
-            write_api.flush()
-        
-        elapsed = time.time() - start_time
-        
-        # Calculate throughput
-        if elapsed > 0:
-            throughput_mb = filesize_mb / elapsed
-            throughput_rows = records_count / elapsed
-        else:
-            throughput_mb = 0
-            throughput_rows = 0
-        
-        print(f"  {GREEN}✓{NC} Complete in {elapsed:.1f}s ({throughput_mb:.2f} MB/s, {throughput_rows:.0f} rows/s)")
-        print(f"  Records processed: {format_number(records_count)}")
-        
-        return records_count, filesize, elapsed
-        
-    except Exception as e:
-        print(f"{RED}ERROR: Failed to ingest file {filename}: {e}{NC}")
-        raise
+    with open(filepath, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            
+            record = json.loads(line)
+            point = convert_json_to_point(record)
+            batch.append(point)
+            
+            if len(batch) >= batch_size:
+                write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=batch)
+                batch = []
+    
+    if batch:
+        write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=batch)
+
+def compact_data():
+    """
+    Trigger InfluxDB compaction.
+    InfluxDB 2.x performs automatic compaction in background.
+    We'll trigger a snapshot to force persistence.
+    """
+    # Wait for background compaction to complete
+    time.sleep(3)
+    
+    # Trigger backup which forces a snapshot/compaction
+    cmd = ["docker", "exec", CONTAINER_NAME, "influx", "backup", "/tmp/backup_trigger", "-t", INFLUXDB_TOKEN]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    
+    # Clean up
+    cmd = ["docker", "exec", CONTAINER_NAME, "rm", "-rf", "/tmp/backup_trigger"]
+    subprocess.run(cmd, capture_output=True, text=True)
+    
+    # Wait for compaction to settle
+    time.sleep(2)
 
 
 def main():
-    """Main ingestion function"""
     # Determine data directory
     script_dir = os.path.dirname(os.path.abspath(__file__))
     default_data_dir = os.path.join(script_dir, "../../data-gen/output")
     data_dir = sys.argv[1] if len(sys.argv) > 1 else default_data_dir
     data_dir = os.path.abspath(data_dir)
     
-    print_banner()
-    print(f"  Data dir:      {data_dir}")
-    print()
-    
-    # Check if data directory exists
-    if not os.path.isdir(data_dir):
-        print(f"{RED}ERROR: Data directory not found: {data_dir}{NC}")
-        print("Please generate data first: cd ../../data-gen && python generate_flows.py")
-        sys.exit(1)
-    
     # Find JSON files
     json_files = sorted(glob.glob(os.path.join(data_dir, "flows_*.json")))
     if not json_files:
-        print(f"{RED}ERROR: No flows_*.json files found in {data_dir}{NC}")
+        print(f"ERROR: No flows_*.json files found in {data_dir}")
         sys.exit(1)
     
-    print(f"Found {len(json_files)} data file(s) to ingest")
-    print()
+    # Step 0: Measure initial storage (before ingestion)
+    initial_storage = get_storage()
     
     # Connect to InfluxDB
-    print("Connecting to InfluxDB...")
-    try:
-        client = InfluxDBClient(url=INFLUXDB_URL, token=INFLUXDB_TOKEN, org=INFLUXDB_ORG)
-        # Test connection
-        health = client.health()
-        if health.status != "pass":
-            print(f"{RED}ERROR: InfluxDB health check failed: {health.message}{NC}")
-            sys.exit(1)
-        print(f"{GREEN}✓{NC} Connected successfully")
-        print()
-    except Exception as e:
-        print(f"{RED}ERROR: Failed to connect to InfluxDB: {e}{NC}")
-        print(f"Make sure InfluxDB is running at {INFLUXDB_URL}")
-        sys.exit(1)
+    client = InfluxDBClient(url=INFLUXDB_URL, token=INFLUXDB_TOKEN, org=INFLUXDB_ORG)
     
-    # Get initial record count
-    print("Checking initial record count...")
-    initial_count = get_record_count(client)
-    print(f"Initial records: {format_number(initial_count)}")
-    print()
+    # Use SYNCHRONOUS writes for accurate benchmarking
+    # Async mode doesn't guarantee immediate disk persistence
+    write_api = client.write_api(write_options=SYNCHRONOUS)
     
-    # Create write API with optimized async batching
-    # This significantly improves throughput (2-3x) by pipelining writes
-    use_async = os.getenv("INFLUXDB_USE_ASYNC", "true").lower() == "true"
+    # Step 1: Ingest
+    print("Ingesting...")
+    start_ns = time.perf_counter_ns()
     
-    if use_async:
-        print(f"{BLUE}Using asynchronous batching for better performance{NC}")
-        write_options = WriteOptions(
-            batch_size=10_000,        # Larger batches for better throughput
-            flush_interval=5_000,     # Flush every 5 seconds
-            jitter_interval=2_000,    # Add jitter to smooth out write spikes
-            retry_interval=5_000,     # Retry failed writes after 5s
-            max_retries=3,            # Retry up to 3 times
-            max_retry_delay=30_000,   # Max 30s delay between retries
-            exponential_base=2        # Exponential backoff
-        )
-        write_api = client.write_api(write_options=write_options)
+    for filepath in json_files:
+        ingest_file(write_api, filepath)
+    
+    # Close write API to ensure all data is flushed
+    write_api.close()
+    
+    end_ns = time.perf_counter_ns()
+    ingest_time_ms = (end_ns - start_ns) / 1_000_000
+    
+    # Step 2: Measure storage after ingestion (before compaction)
+    after_ingest_storage = get_storage()
+
+    # Calculate data size from ingestion (delta)
+    ingested_data_size = after_ingest_storage - initial_storage
+    
+    # Step 3: Compact
+    print("Compacting...")
+    start_ns = time.perf_counter_ns()
+    
+    compact_data()
+    
+    end_ns = time.perf_counter_ns()
+    compact_time_ms = (end_ns - start_ns) / 1_000_000
+    
+    # Step 4: Measure storage after compaction
+    after_compact_storage = get_storage()
+
+    # Calculate final data size (delta from initial)
+    final_data_size = after_compact_storage - initial_storage
+    
+    # Calculate compression ratio (reduction from pre-compact to post-compact)
+    if ingested_data_size > 0:
+        compression_ratio = ((ingested_data_size - final_data_size) / ingested_data_size * 100)
     else:
-        print(f"{YELLOW}Using synchronous writes (slower but simpler){NC}")
-        write_api = client.write_api(write_options=SYNCHRONOUS)
+        compression_ratio = 0.0
     
-    # Ingest files
-    print("=" * 50)
-    print("Starting ingestion...")
-    print("=" * 50)
-    print()
+    # Write output to file
+    output_dir = os.path.join(script_dir, "../../benchmark-results/ingest")
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, "ingest-influxdb-output.txt")
     
-    overall_start = time.time()
-    total_records = 0
-    total_bytes = 0
+    with open(output_path, 'w') as f:
+        f.write(f"Ingestion Time: {ingest_time_ms:.3f} ms\n")
+        f.write(f"Pre-compaction Storage: {ingested_data_size:.2f} Bytes\n")
+        f.write(f"Compaction Time: {compact_time_ms:.3f} ms\n")
+        f.write(f"Post-compaction Storage: {final_data_size:.2f} Bytes\n")
+        f.write(f"Compression Ratio: {compression_ratio:.2f}%\n")
     
-    for i, filepath in enumerate(json_files, 1):
-        print(f"[{i}/{len(json_files)}]")
-        records, size_bytes, elapsed = ingest_file(client, write_api, filepath, use_async)
-        total_records += records
-        total_bytes += size_bytes
-        print()
-    
-    # Final flush for async mode to ensure all data is written
-    if use_async:
-        print("Flushing remaining writes...")
-        write_api.flush()
-    
-    overall_elapsed = time.time() - overall_start
-    
-    # Get final record count
-    print("Checking final record count...")
-    final_count = get_record_count(client)
-    records_inserted = max(final_count - initial_count, total_records)  # Use max in case count query fails
-    
-    # Print final statistics
-    print()
-    print("=" * 50)
-    print(f"{GREEN}✓ Ingestion Complete!{NC}")
-    print("=" * 50)
-    print()
-    print("Statistics:")
-    print(f"  Files processed:    {len(json_files)}")
-    print(f"  Total data:         {total_bytes / 1024 / 1024:.2f} MB")
-    print(f"  Records inserted:   {format_number(records_inserted)}")
-    print(f"  Total time:         {overall_elapsed:.1f} seconds")
-    
-    if overall_elapsed > 0:
-        avg_throughput_mb = (total_bytes / 1024 / 1024) / overall_elapsed
-        avg_throughput_rows = total_records / overall_elapsed
-        print(f"  Avg throughput:     {avg_throughput_mb:.2f} MB/s")
-        print(f"  Avg insert rate:    {format_number(int(avg_throughput_rows))} rows/s")
-    
-    print()
-    print(f"Final record count:   {format_number(final_count)}")
-    print()
-    print("Next steps:")
-    print(f"  - Verify data: curl -XPOST '{INFLUXDB_URL}/api/v2/query?org={INFLUXDB_ORG}' \\")
-    print(f"      -H 'Authorization: Token {INFLUXDB_TOKEN[:10]}...' \\")
-    print(f"      -H 'Content-Type: application/vnd.flux' \\")
-    print(f"      -d 'from(bucket:\"{INFLUXDB_BUCKET}\") |> range(start: 0) |> limit(n: 10)'")
-    print()
-    
-    # Close write API and connection
-    if use_async:
-        write_api.close()
+    # Cleanup (write_api already closed before measurement)
     client.close()
+    
+    print(f"Done. Results written to {output_path}")
 
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print(f"\n{YELLOW}Interrupted by user{NC}")
+        print("\nInterrupted by user")
         sys.exit(1)
     except Exception as e:
-        print(f"\n{RED}FATAL ERROR: {e}{NC}")
-        import traceback
-        traceback.print_exc()
+        print(f"ERROR: {e}")
         sys.exit(1)

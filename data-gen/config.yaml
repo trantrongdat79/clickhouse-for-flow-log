@@ -145,17 +145,17 @@ xlarge:
 # ==============================================================================
 #
 # Level 1 - Baseline:
-#   python generate_flows.py --records 1000000 --unique-src-ips 100 --unique-dst-ips 500 --time-range-days 7
+#   python3 generate_flows.py --records 10000 --unique-src-ips 10 --unique-dst-ips 50 --time-range-days 60
 #
 # Level 2 - Optimal:
-#   python generate_flows.py --records 5000000 --unique-src-ips 500 --unique-dst-ips 2000 --time-range-days 14
+#   python3 generate_flows.py --records 5000000 --unique-src-ips 500 --unique-dst-ips 2000 --time-range-days 14
 #
 # Level 3 - Stressed:
-#   python generate_flows.py --records 20000000 --unique-src-ips 2000 --unique-dst-ips 5000 --time-range-days 30
+#   python3 generate_flows.py --records 20000000 --unique-src-ips 2000 --unique-dst-ips 5000 --time-range-days 30
 #
 # Level 4 - Degraded:
-#   python generate_flows.py --records 50000000 --unique-src-ips 5000 --unique-dst-ips 20000 --time-range-days 45
+#   python3 generate_flows.py --records 50000000 --unique-src-ips 5000 --unique-dst-ips 20000 --time-range-days 45
 #
 # Level 5 - Critical:
-#   python generate_flows.py --records 100000000 --unique-src-ips 10000 --unique-dst-ips 50000 --time-range-days 60
+#   python3 generate_flows.py --records 100000000 --unique-src-ips 10000 --unique-dst-ips 50000 --time-range-days 60
 
