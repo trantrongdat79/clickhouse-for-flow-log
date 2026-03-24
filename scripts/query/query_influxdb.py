@@ -36,7 +36,7 @@ if not TOKEN:
     print("Error: Could not retrieve InfluxDB token")
     exit(1)
 
-client = InfluxDBClient(url=URL, token=TOKEN, org=ORG, timeout=60000)
+client = InfluxDBClient(url=URL, token=TOKEN, org=ORG, timeout=120000)
 query_api = client.query_api()
 
 def run_query(name, flux_query):

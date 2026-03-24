@@ -145,7 +145,7 @@ xlarge:
 # ==============================================================================
 #
 # Level 1 - Baseline:
-#   python3 generate_flows.py --records 10000 --unique-src-ips 10 --unique-dst-ips 50 --time-range-days 60
+#   python3 generate_flows.py --records 1000000 --unique-src-ips 100 --unique-dst-ips 50 --time-range-days 60
 #
 # Level 2 - Optimal:
 #   python3 generate_flows.py --records 5000000 --unique-src-ips 500 --unique-dst-ips 2000 --time-range-days 14

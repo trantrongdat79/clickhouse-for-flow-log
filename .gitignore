@@ -5,6 +5,7 @@ data-gen/output/*.csv
 data/
 logs/
 backups/
+presentation/*
 
 # Environment
 .env
