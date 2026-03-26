@@ -90,7 +90,8 @@ class NetFlowGenerator:
         self.common_ports = [
             (80, 0.25),    # HTTP
             (443, 0.30),   # HTTPS
-            (22, 0.05),    # SSH
+            (22, 0.025),    # SSH
+            (25, 0.025),    # SMTP
             (53, 0.08),    # DNS
             (3306, 0.03),  # MySQL
             (5432, 0.02),  # PostgreSQL

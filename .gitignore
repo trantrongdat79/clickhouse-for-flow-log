@@ -6,7 +6,7 @@ data/
 logs/
 backups/
 presentation/*
-
+report/*
 # Environment
 .env
 *.env.local
