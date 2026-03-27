@@ -19,7 +19,7 @@ cp .env.example docker/.env
 cd docker && docker compose up -d
 
 # 3. Initialize schema
-cd ../scripts/setup && ./02-init-schema.sh
+cd ../scripts/setup && ./01-init-schema.sh
 
 # 4. Generate and ingest data
 cd ../../data-gen && python3 generate_flows.py --records 100000 --output output/

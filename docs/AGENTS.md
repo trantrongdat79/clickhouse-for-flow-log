@@ -322,7 +322,7 @@ cat "${DATA_DIR}/flows.json" | clickhouse-client --query "INSERT INTO flows FORM
 
 # Single-purpose scripts
 ./scripts/setup/01-start-cluster.sh
-./scripts/setup/02-init-schema.sh
+./scripts/setup/01-init-schema.sh
 ./scripts/ingestion/ingest.sh
 ./scripts/testing/run-tests.sh
 ```

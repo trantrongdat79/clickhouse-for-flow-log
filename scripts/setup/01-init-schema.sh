@@ -1,7 +1,7 @@
 #!/bin/bash
-# Script: 02-init-schema.sh
+# Script: 01-init-schema.sh
 # Purpose: Initialize ClickHouse database schema for NetFlow analytics
-# Usage: ./02-init-schema.sh
+# Usage: ./01-init-schema.sh
 # Author: NetFlow Analytics Team
 # Date: 2026-03-16
 
@@ -11,7 +11,9 @@ set -e  # Exit on error
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SQL_DIR="${SCRIPT_DIR}/../../sql/schema"
 CH_CONTAINER="clickhouse01"
-CH_CLIENT="docker exec -i ${CH_CONTAINER} clickhouse-client"
+CH_PASSWORD="${CLICKHOUSE_PASSWORD:-admin}"
+CH_CLIENT="docker exec -i ${CH_CONTAINER} clickhouse-client --password=${CH_PASSWORD}"
+INIT_LOG="${SCRIPT_DIR}/.ch_init.log"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -59,16 +61,18 @@ for sql_file in "${SQL_DIR}"/*.sql; do
         filename=$(basename "$sql_file")
         echo -n "  ${filename}... "
         
-        if ${CH_CLIENT} --multiquery < "$sql_file" 2>&1 | tee /tmp/ch_init.log | grep -q "Exception"; then
+        if ${CH_CLIENT} --multiquery < "$sql_file" 2>&1 | tee "$INIT_LOG" | grep -q "Exception"; then
             echo -e "${RED}FAILED${NC}"
             echo "Error details:"
-            cat /tmp/ch_init.log
+            cat "$INIT_LOG"
             exit 1
         else
             echo -e "${GREEN}✓${NC}"
         fi
     fi
 done
+
+rm -f "$INIT_LOG"
 
 echo ""
 echo "========================================"
@@ -121,9 +125,3 @@ echo ""
 echo "========================================"
 echo -e "${GREEN}✓ Schema initialization complete!${NC}"
 echo "========================================"
-echo ""
-echo "Next steps:"
-echo "  1. Generate test data: cd ../../data-gen && python generate_flows.py --records 100000"
-echo "  2. Ingest data: cd ../scripts/ingestion && ./ingest_clickhouse.sh"
-echo "  3. Query data: docker exec -it clickhouse01 clickhouse-client"
-echo ""

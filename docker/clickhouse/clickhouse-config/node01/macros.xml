@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!-- 
+filepath: clickhouse-config/node01/macros.xml
+Purpose: Node-specific macros for ClickHouse Node 1
+Usage: Used in ReplicatedMergeTree table definitions
+Related files: remote_servers.xml (cluster topology)
+-->
+
+<clickhouse>
+    <macros>
+        <!-- Shard identifier (all replicas in same shard share this) -->
+        <shard>01</shard>
+        
+        <!-- Unique replica identifier within the shard -->
+        <replica>replica1</replica>
+        
+        <!-- Cluster name must match remote_servers.xml -->
+        <cluster>netflow_cluster</cluster>
+    </macros>
+</clickhouse>

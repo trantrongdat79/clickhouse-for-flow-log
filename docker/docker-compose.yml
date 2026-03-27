@@ -1,10 +1,62 @@
 # ClickHouse NetFlow Analytics - Docker Compose Configuration
-# Minimal setup for testing: 1 ClickHouse, 1 InfluxDB, 1 Grafana
-# For production/clustering, see docker-compose.cluster.yml
+# Replicated setup: 2 ClickHouse nodes (replicas), 3 ZooKeeper nodes
+# Focus: High availability through replication
 
 services:
-  # ClickHouse Database Server
-  clickhouse:
+  # ZooKeeper Ensemble (3 nodes for quorum)
+  zookeeper01:
+    image: zookeeper:${ZOOKEEPER_VERSION:-3.8}
+    container_name: zookeeper01
+    hostname: zookeeper01
+    ports:
+      - "2181:2181"
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=zookeeper01:2888:3888;2181 server.2=zookeeper02:2888:3888;2181 server.3=zookeeper03:2888:3888;2181
+      ZOO_4LW_COMMANDS_WHITELIST: mntr,conf,ruok
+    volumes:
+      - zookeeper01_data:/data
+      - zookeeper01_datalog:/datalog
+    networks:
+      - netflow_network
+    restart: unless-stopped
+
+  zookeeper02:
+    image: zookeeper:${ZOOKEEPER_VERSION:-3.8}
+    container_name: zookeeper02
+    hostname: zookeeper02
+    ports:
+      - "2182:2181"
+    environment:
+      ZOO_MY_ID: 2
+      ZOO_SERVERS: server.1=zookeeper01:2888:3888;2181 server.2=zookeeper02:2888:3888;2181 server.3=zookeeper03:2888:3888;2181
+      ZOO_4LW_COMMANDS_WHITELIST: mntr,conf,ruok
+    volumes:
+      - zookeeper02_data:/data
+      - zookeeper02_datalog:/datalog
+    networks:
+      - netflow_network
+    restart: unless-stopped
+
+  zookeeper03:
+    image: zookeeper:${ZOOKEEPER_VERSION:-3.8}
+    container_name: zookeeper03
+    hostname: zookeeper03
+    ports:
+      - "2183:2181"
+    environment:
+      ZOO_MY_ID: 3
+      ZOO_SERVERS: server.1=zookeeper01:2888:3888;2181 server.2=zookeeper02:2888:3888;2181 server.3=zookeeper03:2888:3888;2181
+      ZOO_4LW_COMMANDS_WHITELIST: mntr,conf,ruok
+    volumes:
+      - zookeeper03_data:/data
+      - zookeeper03_datalog:/datalog
+    networks:
+      - netflow_network
+    restart: unless-stopped
+
+  # ClickHouse Node 1 (Replica 1)
+  clickhouse01:
     image: clickhouse/clickhouse-server:${CLICKHOUSE_VERSION:-24.1}
     container_name: clickhouse01
     hostname: clickhouse01
@@ -13,23 +65,60 @@ services:
       - "${CLICKHOUSE_NATIVE_PORT:-9000}:9000"  # Native protocol
       - "9009:9009"                              # Inter-server communication
     volumes:
-      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse01_data:/var/lib/clickhouse
       - ../logs/clickhouse01:/var/log/clickhouse-server
-      - ./clickhouse/clickhouse-config/config.d:/etc/clickhouse-server/config.d:ro
-      - ./clickhouse/clickhouse-config/users.d:/etc/clickhouse-server/users.d
+      - ./clickhouse/clickhouse-config/node01-config.d:/etc/clickhouse-server/config.d:ro
+      - ./clickhouse/clickhouse-config/users.d:/etc/clickhouse-server/users.d:ro
       - ./clickhouse/initdb.d:/docker-entrypoint-initdb.d:ro
     environment:
       CLICKHOUSE_DB: netflow
-      CLICKHOUSE_USER: default
-      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-secure_password_change_me}
-      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
-      CLICKHOUSE_ALWAYS_RUN_INITDB_SCRIPTS: 1  # Force init scripts to run even if data exists
+      CLICKHOUSE_ALWAYS_RUN_INITDB_SCRIPTS: 1
     ulimits:
       nofile:
         soft: 262144
         hard: 262144
+    depends_on:
+      - zookeeper01
+      - zookeeper02
+      - zookeeper03
     healthcheck:
-      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      test: ["CMD", "clickhouse-client", "--password=admin", "--query", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - netflow_network
+    restart: unless-stopped
+
+  # ClickHouse Node 2 (Replica 2)
+  clickhouse02:
+    image: clickhouse/clickhouse-server:${CLICKHOUSE_VERSION:-24.1}
+    container_name: clickhouse02
+    hostname: clickhouse02
+    ports:
+      - "8124:8123"    # HTTP interface (different port to avoid conflict)
+      - "9001:9000"    # Native protocol (different port)
+      - "9010:9009"    # Inter-server communication
+    volumes:
+      - clickhouse02_data:/var/lib/clickhouse
+      - ../logs/clickhouse02:/var/log/clickhouse-server
+      - ./clickhouse/clickhouse-config/node02-config.d:/etc/clickhouse-server/config.d:ro
+      - ./clickhouse/clickhouse-config/users.d:/etc/clickhouse-server/users.d:ro
+      - ./clickhouse/initdb.d:/docker-entrypoint-initdb.d:ro
+    environment:
+      CLICKHOUSE_DB: netflow
+      CLICKHOUSE_ALWAYS_RUN_INITDB_SCRIPTS: 1
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    depends_on:
+      - zookeeper01
+      - zookeeper02
+      - zookeeper03
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--password=admin", "--query", "SELECT 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -84,7 +173,6 @@ services:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin_change_me}
       GF_INSTALL_PLUGINS: grafana-clickhouse-datasource,yesoreyeram-infinity-datasource,netsage-sankey-panel
-      # Plugins already installed in volume, no need to reinstall
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_SERVER_ROOT_URL: http://localhost:3000
       GF_LOG_MODE: console file
@@ -93,7 +181,9 @@ services:
       INFLUXDB_ORG: ${INFLUXDB_ORG:-netflow}
       INFLUXDB_BUCKET: ${INFLUXDB_BUCKET:-flows}
     depends_on:
-      clickhouse:
+      clickhouse01:
+        condition: service_healthy
+      clickhouse02:
         condition: service_healthy
       influxdb:
         condition: service_healthy
@@ -115,24 +205,43 @@ networks:
         - subnet: 10.200.0.0/16  # Changed from 172.25.0.0/16 to avoid VPN conflict
 
 volumes:
-  clickhouse_data:
+  # ZooKeeper volumes
+  zookeeper01_data:
     driver: local
+  zookeeper01_datalog:
+    driver: local
+  zookeeper02_data:
+    driver: local
+  zookeeper02_datalog:
+    driver: local
+  zookeeper03_data:
+    driver: local
+  zookeeper03_datalog:
+    driver: local
+  # ClickHouse volumes
+  clickhouse01_data:
+    driver: local
+  clickhouse02_data:
+    driver: local
+  # Other service volumes
   influxdb_data:
     driver: local
-    # This creates a Docker-managed volume stored in Docker's storage area
-    # (typically /var/lib/docker/volumes on Linux with ext4 filesystem)
-    # This avoids NTFS filesystem permission issues with ClickHouse
 
-# Note: Using named volume for ClickHouse data to avoid filesystem compatibility issues
+# Note: Using named volumes for all services to avoid filesystem compatibility issues
 # Data stored in Docker's internal storage (ext4 on Linux)
-# InfluxDB uses bind mount to NTFS (no permission issues)
-# Logs still use bind mounts to local directories for easy access:
+# Logs use bind mounts to local directories for easy access:
 #   - ../logs/clickhouse01 -> ClickHouse node 1 logs
+#   - ../logs/clickhouse02 -> ClickHouse node 2 logs
 #   - ../logs/influxdb -> InfluxDB logs
 #   - ../logs/grafana -> Grafana logs
-#   - ../data/influxdb -> InfluxDB data (NTFS compatible)
 #   - ../data/grafana -> Grafana data (NTFS compatible)
 # Backups (centralized by service):
 #   - ../backups/clickhouse -> Cluster-wide ClickHouse backups
 #   - ../backups/influxdb -> InfluxDB backups
 #   - ../backups/grafana -> Grafana config/dashboard backups
+#
+# Cluster Architecture:
+#   - 2 ClickHouse nodes (1 shard, 2 replicas)
+#   - 3 ZooKeeper nodes (ensemble for coordination)
+#   - Replication enabled via ReplicatedMergeTree
+#   - Distributed queries via Distributed table engine

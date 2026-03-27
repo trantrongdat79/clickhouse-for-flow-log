@@ -1,5 +1,0 @@
-Ingestion Time: 55105.324 ms
-Pre-compaction Storage: 217385598.00 Bytes
-Compaction Time: 34056.418 ms
-Post-compaction Storage: 837625944.00 Bytes
-Compression Ratio: -285.32%

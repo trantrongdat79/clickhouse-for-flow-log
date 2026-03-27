@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<clickhouse>
+    <backups>
+        <allowed_disk>default</allowed_disk>
+    </backups>
+</clickhouse>

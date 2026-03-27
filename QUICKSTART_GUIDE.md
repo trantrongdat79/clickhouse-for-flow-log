@@ -63,7 +63,7 @@ Press `Ctrl+C` to exit the watch command.
 cd ../scripts/setup
 
 # Initialize the ClickHouse database schema
-./02-init-schema.sh
+./01-init-schema.sh
 
 # Verify schema creation
 docker exec -it clickhouse01 clickhouse-client --query "SHOW TABLES FROM netflow"
@@ -240,7 +240,7 @@ sudo usermod -aG docker $USER
 ```bash
 # Manual schema creation
 cd scripts/setup
-./02-init-schema.sh
+./01-init-schema.sh
 
 # Or run SQL manually
 docker exec -it clickhouse01 clickhouse-client < ../../sql/schema/01-flows-local.sql
@@ -295,7 +295,7 @@ cp .env.example docker/.env
 cd docker && docker compose up -d
 
 # Initialize schema
-cd ../scripts/setup && ./02-init-schema.sh
+cd ../scripts/setup && ./01-init-schema.sh
 
 # Generate and ingest data
 cd ../../data-gen && python3 generate_flows.py --records 100000 --output output/
