@@ -512,3 +512,5 @@ All queries produce equivalent results between ClickHouse and InfluxDB:
    - Both databases query the same source data
    - Results are numerically identical
    - Only output format differs (tabular vs FluxRecord objects)
+
+Data has been updated

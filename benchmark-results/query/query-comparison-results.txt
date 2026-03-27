@@ -1,0 +1,91 @@
+========================================
+Query Performance Comparison Report
+ClickHouse vs InfluxDB
+========================================
+
+Date: 2026-03-26 10:20:55
+Number of runs: 5
+Number of queries: 15
+
+========================================
+RESULTS (Average of 5 runs)
+========================================
+
+Query                                              |   ClickHouse |     InfluxDB |    Speedup | Winner
+====================================================================================================
+Q1.a: Total bytes by src_ip                        |       9.20 ms |    1838.39 ms |   199.83x | ClickHouse
+Q1.b: Total packets by src_ip                      |       8.48 ms |    1856.55 ms |   218.93x | ClickHouse
+Q1.c: Flow count by src_ip                         |       8.15 ms |    1830.30 ms |   224.58x | ClickHouse
+Q2.a: Bytes by time bucket (1-min)                 |      10.45 ms |   17247.56 ms |  1650.48x | ClickHouse
+Q2.b: Flow count by time bucket (1-min)            |       9.11 ms |   16032.32 ms |  1759.86x | ClickHouse
+Q3.a: Flow count by protocol                       |       7.82 ms |    1853.13 ms |   236.97x | ClickHouse
+Q3.b: Total bytes by protocol                      |       7.58 ms |    1853.27 ms |   244.49x | ClickHouse
+Q3.c: Total packets by protocol                    |      11.19 ms |    1781.72 ms |   159.22x | ClickHouse
+Q4.a: Connection count by dst_port                 |      15.20 ms |    6895.04 ms |   453.62x | ClickHouse
+Q4.b: Total bytes by dst_port                      |      15.80 ms |    6745.42 ms |   426.93x | ClickHouse
+Q5.a: P50 percentile by hour                       |      10.58 ms |    2863.86 ms |   270.69x | ClickHouse
+Q5.b: P95 percentile by hour                       |      10.25 ms |    2793.22 ms |   272.51x | ClickHouse
+Q5.c: P99 percentile by hour                       |      10.12 ms |    2854.66 ms |   282.08x | ClickHouse
+Q6.a: Total bytes by conversation                  |       8.81 ms |    1866.80 ms |   211.90x | ClickHouse
+Q6.b: Flow count by conversation                   |       7.87 ms |    1874.30 ms |   238.16x | ClickHouse
+====================================================================================================
+TOTAL                                              |     150.61 ms |   70186.50 ms |
+
+========================================
+CLICKHOUSE - Detailed Results (All 5 runs)
+========================================
+
+Query                                              |       Run1 |       Run2 |       Run3 |       Run4 |       Run5
+======================================================================================================================
+Q1.a: Total bytes by src_ip                        |     9.68 ms |     9.35 ms |     8.93 ms |     8.93 ms |     9.09 ms
+Q1.b: Total packets by src_ip                      |     8.96 ms |     7.98 ms |     7.98 ms |     8.91 ms |     8.59 ms
+Q1.c: Flow count by src_ip                         |     8.47 ms |     7.73 ms |     7.00 ms |     7.96 ms |     9.60 ms
+Q2.a: Bytes by time bucket (1-min)                 |     9.92 ms |     9.60 ms |    11.81 ms |     9.96 ms |    10.94 ms
+Q2.b: Flow count by time bucket (1-min)            |     9.52 ms |     8.93 ms |     8.75 ms |     9.24 ms |     9.13 ms
+Q3.a: Flow count by protocol                       |     7.41 ms |     7.65 ms |     7.80 ms |     7.92 ms |     8.34 ms
+Q3.b: Total bytes by protocol                      |     7.18 ms |     7.05 ms |     7.45 ms |     7.07 ms |     9.15 ms
+Q3.c: Total packets by protocol                    |     6.86 ms |    25.62 ms |     7.03 ms |     8.78 ms |     7.64 ms
+Q4.a: Connection count by dst_port                 |    24.97 ms |    13.85 ms |    10.69 ms |    13.51 ms |    12.96 ms
+Q4.b: Total bytes by dst_port                      |    28.06 ms |    14.85 ms |    11.55 ms |    11.33 ms |    13.22 ms
+Q5.a: P50 percentile by hour                       |    10.52 ms |    10.86 ms |    10.30 ms |    10.60 ms |    10.61 ms
+Q5.b: P95 percentile by hour                       |    10.53 ms |    10.40 ms |    10.49 ms |    10.51 ms |     9.34 ms
+Q5.c: P99 percentile by hour                       |     9.63 ms |    10.95 ms |    10.01 ms |    10.01 ms |     9.98 ms
+Q6.a: Total bytes by conversation                  |     8.54 ms |     9.36 ms |     8.97 ms |     8.42 ms |     8.76 ms
+Q6.b: Flow count by conversation                   |     7.13 ms |     9.34 ms |     7.26 ms |     8.49 ms |     7.13 ms
+
+========================================
+INFLUXDB - Detailed Results (All 5 runs)
+========================================
+
+Query                                              |       Run1 |       Run2 |       Run3 |       Run4 |       Run5
+======================================================================================================================
+Q1.a: Total bytes by src_ip                        |  1950.95 ms |  1913.42 ms |  1798.16 ms |  1759.52 ms |  1769.90 ms
+Q1.b: Total packets by src_ip                      |  2257.91 ms |  1770.22 ms |  1751.63 ms |  1774.71 ms |  1728.27 ms
+Q1.c: Flow count by src_ip                         |  2035.21 ms |  1786.15 ms |  1765.80 ms |  1797.45 ms |  1766.88 ms
+Q2.a: Bytes by time bucket (1-min)                 | 17458.63 ms | 17157.44 ms | 17090.42 ms | 16981.63 ms | 17549.77 ms
+Q2.b: Flow count by time bucket (1-min)            | 16949.96 ms | 15452.86 ms | 15978.77 ms | 16098.28 ms | 15681.55 ms
+Q3.a: Flow count by protocol                       |  1957.75 ms |  1882.99 ms |  1797.15 ms |  1764.79 ms |  1862.97 ms
+Q3.b: Total bytes by protocol                      |  1915.31 ms |  1809.15 ms |  1752.34 ms |  1862.36 ms |  1927.21 ms
+Q3.c: Total packets by protocol                    |  1820.29 ms |  1779.57 ms |  1779.06 ms |  1751.00 ms |  1778.69 ms
+Q4.a: Connection count by dst_port                 |  6722.57 ms |  6751.79 ms |  6997.35 ms |  6802.20 ms |  7201.21 ms
+Q4.b: Total bytes by dst_port                      |  6959.36 ms |  6622.42 ms |  6924.69 ms |  6682.88 ms |  6537.71 ms
+Q5.a: P50 percentile by hour                       |  2761.52 ms |  2847.00 ms |  2956.15 ms |  2737.42 ms |  3017.17 ms
+Q5.b: P95 percentile by hour                       |  2911.56 ms |  2786.33 ms |  2733.96 ms |  2837.77 ms |  2696.51 ms
+Q5.c: P99 percentile by hour                       |  2763.14 ms |  3145.45 ms |  2745.41 ms |  2662.18 ms |  2957.10 ms
+Q6.a: Total bytes by conversation                  |  1847.73 ms |  1985.18 ms |  1803.80 ms |  1873.91 ms |  1823.39 ms
+Q6.b: Flow count by conversation                   |  1847.54 ms |  1955.08 ms |  1913.71 ms |  1781.56 ms |  1873.59 ms
+
+========================================
+SUMMARY
+========================================
+
+Total queries: 15
+ClickHouse wins: 15
+InfluxDB wins: 0
+
+Average query time:
+  ClickHouse: 10.04 ms
+  InfluxDB:   4679.10 ms
+
+Overall Winner: ClickHouse (466.05x faster, 99.8% improvement)
+========================================

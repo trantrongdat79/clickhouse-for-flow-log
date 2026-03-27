@@ -1,0 +1,59 @@
+========================================
+Ingestion Performance Comparison Report
+ClickHouse vs InfluxDB
+========================================
+
+Date: 2026-03-26 10:12:55
+Number of runs: 3
+
+========================================
+RESULTS (Average of 3 run(s))
+========================================
+
+Metric                                        |    ClickHouse |      InfluxDB |    Speedup | Winner
+=========================================================================================================
+Ingestion Time                                |     819.61 ms |   55684.54 ms |    67.94x | ClickHouse
+Pre-compaction Storage                        |      13.38 MB |     207.32 MB |    15.49x | ClickHouse
+Compaction Time                               |     373.07 ms |   34708.37 ms |    93.03x | ClickHouse
+Post-compaction Storage                       |      26.76 MB |     798.82 MB |    29.85x | ClickHouse
+Compression Ratio                             |    -100.00 % |    -285.32 % |     0.35x | ClickHouse
+=========================================================================================================
+
+========================================
+CLICKHOUSE - Detailed Results (All 3 run(s))
+========================================
+
+Metric                                        |         Run1 |         Run2 |         Run3
+=============================================================================================
+Ingestion Time (ms)                           |     832.64 |     816.73 |     809.47
+Pre-compaction Storage (MB)                   |      13.38 |      13.38 |      13.38
+Compaction Time (ms)                          |     365.42 |     369.77 |     384.02
+Post-compaction Storage (MB)                  |      26.76 |      26.76 |      26.76
+Compression Ratio (%)                         |    -100.00 |    -100.00 |    -100.00
+
+========================================
+INFLUXDB - Detailed Results (All 3 run(s))
+========================================
+
+Metric                                        |         Run1 |         Run2 |         Run3
+=============================================================================================
+Ingestion Time (ms)                           |   56415.74 |   55532.54 |   55105.32
+Pre-compaction Storage (MB)                   |     207.32 |     207.32 |     207.32
+Compaction Time (ms)                          |   35711.01 |   34357.69 |   34056.42
+Post-compaction Storage (MB)                  |     798.82 |     798.82 |     798.82
+Compression Ratio (%)                         |    -285.31 |    -285.32 |    -285.32
+
+========================================
+SUMMARY
+========================================
+
+Total metrics compared: 5
+ClickHouse wins: 5
+InfluxDB wins: 0
+
+Average performance:
+  ClickHouse: Ingestion 819.61 ms, Storage 26.76 MB, Compression -100.00%
+  InfluxDB:   Ingestion 55684.54 ms, Storage 798.82 MB, Compression -285.32%
+
+Overall Winner: ClickHouse (67.94x faster ingestion, 98.5% improvement)
+========================================

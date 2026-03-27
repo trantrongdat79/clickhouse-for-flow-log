@@ -157,7 +157,7 @@ class NetFlowGenerator:
             ports, weights = zip(*self.common_ports)
             return random.choices(ports, weights=weights, k=1)[0]
         else:
-            return random.randint(65526, 65535)  # Ephemeral ports
+            return random.randint(4096, 65535)  # Ephemeral ports
     
     def _select_protocol(self) -> Tuple[int, str]:
         """Select protocol with weighted distribution."""
