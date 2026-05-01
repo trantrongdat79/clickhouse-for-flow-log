@@ -88,39 +88,6 @@ done
 
 echo ""
 
-# Show table structure
-echo "Structure of netflow.flows_local table:"
-${CH_CLIENT} --query "DESCRIBE TABLE netflow.flows_local FORMAT PrettyCompact"
-
-echo ""
-
-# Show table details
-echo "Table details:"
-${CH_CLIENT} --query "
-SELECT 
-    engine,
-    partition_key,
-    sorting_key,
-    primary_key
-FROM system.tables 
-WHERE name = 'flows_local' AND database = 'netflow'
-FORMAT Vertical
-"
-
-echo ""
-
-# Show indexes
-echo "Indexes on netflow.flows_local:"
-${CH_CLIENT} --query "
-SELECT 
-    name,
-    type,
-    expr
-FROM system.data_skipping_indices
-WHERE table = 'flows_local' AND database = 'netflow'
-FORMAT PrettyCompact
-"
-
 echo ""
 echo "========================================"
 echo -e "${GREEN}✓ Schema initialization complete!${NC}"

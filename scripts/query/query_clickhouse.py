@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import clickhouse_connect
 import time
+from datetime import datetime, timedelta
 from pathlib import Path
 
 # Configuration
@@ -10,8 +11,9 @@ USERNAME = 'default'
 PASSWORD = 'admin'
 DATABASE = 'netflow'
 TABLE = 'flows_local'
-TIME_START = '2026-03-01 00:00:00'
-TIME_END = '2026-03-07 23:59:59'
+now = datetime.utcnow()
+TIME_START = (now - timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S')
+TIME_END = now.strftime('%Y-%m-%d %H:%M:%S')
 
 OUTPUT_DIR = Path(__file__).parent.parent.parent / 'benchmark-results' / 'query'
 OUTPUT_FILE = OUTPUT_DIR / 'query-clickhouse-output.txt'

@@ -3,6 +3,7 @@ from influxdb_client import InfluxDBClient
 import time
 import subprocess
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 # Configuration
@@ -11,8 +12,9 @@ USERNAME = 'admin'
 PASSWORD = 'admin_password_change_me'
 ORG = 'netflow'
 BUCKET = 'flows'
-TIME_START = '2026-03-01T00:00:00Z'
-TIME_END = '2026-03-07T23:59:59Z'
+now = datetime.now(timezone.utc)
+TIME_START = (now - timedelta(days=7)).strftime('%Y-%m-%dT%H:%M:%SZ')
+TIME_END = now.strftime('%Y-%m-%dT%H:%M:%SZ')
 
 OUTPUT_DIR = Path(__file__).parent.parent.parent / 'benchmark-results' / 'query'
 OUTPUT_FILE = OUTPUT_DIR / 'query-influxdb-output.txt'
@@ -36,7 +38,7 @@ if not TOKEN:
     print("Error: Could not retrieve InfluxDB token")
     exit(1)
 
-client = InfluxDBClient(url=URL, token=TOKEN, org=ORG, timeout=120000)
+client = InfluxDBClient(url=URL, token=TOKEN, org=ORG, timeout=300000)
 query_api = client.query_api()
 
 def run_query(name, flux_query):

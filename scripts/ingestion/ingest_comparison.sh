@@ -259,12 +259,6 @@ main() {
         
         print_success "Run ${run} complete"
         
-        # Brief pause between runs
-        if [ ${run} -lt ${NUM_RUNS} ]; then
-            echo ""
-            print_step "Pausing before next run..."
-            sleep 3
-        fi
     done
     
     # Calculate and append summary statistics

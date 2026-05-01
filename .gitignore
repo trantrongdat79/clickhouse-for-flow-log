@@ -2,11 +2,23 @@
 data-gen/output/*.json
 data-gen/output/*.txt
 data-gen/output/*.csv
+
+# CICIDS2017 dataset files
+data-gen/cicids2017/*.csv
+data-gen/cicids2017/output/*.json
+data-gen/cicids2017/output/*.txt
+data-gen/cicids2017/output-full/*
+data-gen/cicids2017/output-small/*
+
+data-gen/dataset/*
+
 data/
 logs/
 backups/
 presentation/*
 report/*
+benchmark-results/*
+
 # Environment
 .env
 *.env.local
